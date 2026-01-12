@@ -103,6 +103,8 @@ map.on('load', () => {
     collapsed: true,
     basemapStyleUrl: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     customLayerAdapters: [usgsLidarAdapter],
+    excludeDrawnLayers: true,
+    excludeLayers: ["*Draw*", "*Footprints*"]
   });
   map.addControl(layerControl, 'top-right');
 
