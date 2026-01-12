@@ -206,6 +206,7 @@ export type UsgsLidarControlEvent =
   | 'loadstart'
   | 'loadcomplete'
   | 'loaderror'
+  | 'unload'
   | 'drawstart'
   | 'drawend';
 
@@ -218,6 +219,8 @@ export interface UsgsLidarEventData {
   items?: StacItem[];
   error?: Error;
   pointCloud?: PointCloudInfo;
+  /** Item ID for unload events */
+  itemId?: string;
 }
 
 /**

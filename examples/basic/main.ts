@@ -1,5 +1,5 @@
 import maplibregl from 'maplibre-gl';
-import { UsgsLidarControl } from '../../src/index';
+import { UsgsLidarControl, UsgsLidarLayerAdapter } from '../../src/index';
 import { LayerControl } from 'maplibre-gl-layer-control';
 import '../../src/index.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -42,17 +42,17 @@ map.on('load', () => {
 
   map.addLayer(
     {
-      id: 'google-satellite-layer',
+      id: 'google-satellite',
       type: 'raster',
       source: 'google-satellite',
+      minzoom: 15,
       paint: {
         'raster-opacity': 1,
       },
       layout: {
-        visibility: 'none', // Hidden by default
+        visibility: 'visible', // Hidden by default
       },
     },
-    firstSymbolId // Insert before first symbol layer
   );
 
   // Add 3DEP Elevation Index WMS layer (Lidar Point Cloud coverage)
@@ -67,7 +67,7 @@ map.on('load', () => {
 
   map.addLayer(
     {
-      id: '3dep-index-layer',
+      id: '3DEP Index',
       type: 'raster',
       source: '3dep-index',
       maxzoom: 10, // Hide when zoom > 10
@@ -75,32 +75,13 @@ map.on('load', () => {
         'raster-opacity': 0.7,
       },
       layout: {
-        visibility: 'none', // Hidden by default
+        visibility: 'visible', // Hidden by default
       },
     },
     firstSymbolId // Insert before first symbol layer (above satellite)
   );
 
-  // Add layer control for basemap layers
-  const layerControl = new LayerControl({
-    collapsed: true,
-    layers: ['google-satellite-layer', '3dep-index-layer'],
-    layerStates: {
-      'google-satellite-layer': {
-        visible: false,
-        opacity: 1,
-        name: 'Google Satellite',
-      },
-      '3dep-index-layer': {
-        visible: false,
-        opacity: 0.7,
-        name: '3DEP LiDAR Index',
-      },
-    },
-  });
-  map.addControl(layerControl, 'top-right');
-
-  // Create the USGS LiDAR control
+  // Create the USGS LiDAR control (created first for adapter, added to map after layer control)
   const usgsLidarControl = new UsgsLidarControl({
     title: 'USGS 3DEP LiDAR',
     collapsed: false,
@@ -114,7 +95,18 @@ map.on('load', () => {
     },
   });
 
-  // Add control to the map
+  // Create the USGS LiDAR layer adapter for layer control integration
+  const usgsLidarAdapter = new UsgsLidarLayerAdapter(usgsLidarControl);
+
+  // Add layer control with the USGS LiDAR adapter
+  const layerControl = new LayerControl({
+    collapsed: true,
+    basemapStyleUrl: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    customLayerAdapters: [usgsLidarAdapter],
+  });
+  map.addControl(layerControl, 'top-right');
+
+  // Add USGS LiDAR control to the map (after layer control)
   map.addControl(usgsLidarControl, 'top-right');
 
 
