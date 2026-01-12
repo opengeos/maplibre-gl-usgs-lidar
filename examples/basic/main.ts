@@ -1,6 +1,8 @@
 import maplibregl from 'maplibre-gl';
 import { UsgsLidarControl, UsgsLidarLayerAdapter } from '../../src/index';
 import { LayerControl } from 'maplibre-gl-layer-control';
+import {Legend} from 'maplibre-gl-components';
+
 import '../../src/index.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import 'maplibre-gl-lidar/style.css';
@@ -10,8 +12,8 @@ import 'maplibre-gl-layer-control/style.css';
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  center: [-104.9847, 39.7392],
-  zoom: 14,
+  center: [-96, 40],
+  zoom: 3.8,
   maxPitch: 85,
 });
 
@@ -104,14 +106,29 @@ map.on('load', () => {
     basemapStyleUrl: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     customLayerAdapters: [usgsLidarAdapter],
     excludeDrawnLayers: true,
-    excludeLayers: ["*Draw*", "*Footprints*"]
+    excludeLayers: ["*Draw*"]
   });
   map.addControl(layerControl, 'top-right');
 
   // Add USGS LiDAR control to the map (after layer control)
   map.addControl(usgsLidarControl, 'top-right');
 
-
+  // Add a legend with zoom visibility control
+  const lidarLegend = new Legend({
+    title: 'LiDAR Point Cloud',
+    items: [
+      { label: 'QL0 (Approx. <= 0.35m NPS)', color: '#003300', shape: 'square' },
+      { label: 'QL1 (Approx. 0.35m NPS)', color: '#006600', shape: 'square' },
+      { label: 'QL2 (Approx. 0.7m NPS)', color: '#00cc00', shape: 'square' },
+      { label: 'QL3 (Approx. 1.4m NPS)', color: '#ccff00', shape: 'square' },
+      { label: 'Other', color: '#99ccff', shape: 'square' },
+    ],
+    collapsible: true,
+    width: 220,
+    position: 'bottom-left',
+    maxzoom: 10, // Always visible (default max is 24)
+  });
+  map.addControl(lidarLegend, 'top-left');
 
   // Listen for events
   usgsLidarControl.on('searchstart', () => {
