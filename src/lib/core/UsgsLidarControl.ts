@@ -115,11 +115,14 @@ export class UsgsLidarControl implements IControl {
     this._mapContainer.appendChild(this._panel);
 
     // Initialize components after map style is ready
-    if (map.isStyleLoaded()) {
-      this._initComponents();
-    } else {
-      map.once('style.load', () => this._initComponents());
-    }
+    // Use setTimeout to allow the current execution context to complete,
+    // which fixes a race condition where isStyleLoaded() returns false
+    // even though we're inside a map.on('load') callback
+    setTimeout(() => {
+      if (!this._initialized) {
+        this._initComponents();
+      }
+    }, 0);
 
     this._setupEventListeners();
 
@@ -163,37 +166,40 @@ export class UsgsLidarControl implements IControl {
   private _initComponents(): void {
     if (!this._map || this._initialized) return;
 
-    // Initialize drawing layers
-    this._initDrawLayers();
+    try {
+      // Initialize drawing layers
+      this._initDrawLayers();
 
-    // Initialize FootprintLayer
-    this._footprintLayer = new FootprintLayer(this._map);
-    this._footprintLayer.onClick((itemId) => {
-      const item = this._state.searchResults.find((i) => i.id === itemId);
-      if (item) {
-        this.toggleItemSelection(item);
-      }
-    });
+      // Initialize FootprintLayer
+      this._footprintLayer = new FootprintLayer(this._map);
+      this._footprintLayer.onClick((itemId) => {
+        const item = this._state.searchResults.find((i) => i.id === itemId);
+        if (item) {
+          this.toggleItemSelection(item);
+        }
+      });
 
-    // Initialize LidarControl (collapsed - we use our own UI)
-    this._lidarControl = new LidarControl({
-      collapsed: true,
-      position: this._options.position,
-      ...this._options.lidarControlOptions,
-    });
-    this._map.addControl(this._lidarControl, this._options.position);
+      // Initialize LidarControl (collapsed - we use our own UI)
+      this._lidarControl = new LidarControl({
+        collapsed: true,
+        position: this._options.position,
+        ...this._options.lidarControlOptions,
+      });
+      this._map.addControl(this._lidarControl, this._options.position);
 
-    // Listen to lidar control state changes
-    this._lidarControl.on('statechange', (event) => {
-      this.setState({ lidarState: event.state });
-      // Show viz section when data is loaded
-      if (this._panelBuilder && this._state.loadedItems.size > 0) {
-        this._panelBuilder.showVisualizationSection(true);
-      }
-    });
+      // Listen to lidar control state changes
+      this._lidarControl.on('statechange', (event) => {
+        this.setState({ lidarState: event.state });
+        // Show viz section when data is loaded
+        if (this._panelBuilder && this._state.loadedItems.size > 0) {
+          this._panelBuilder.showVisualizationSection(true);
+        }
+      });
 
-    this._initialized = true;
-    console.log('UsgsLidarControl initialized');
+      this._initialized = true;
+    } catch (error) {
+      console.error('Error in _initComponents:', error);
+    }
   }
 
   private _initDrawLayers(): void {
@@ -477,7 +483,6 @@ export class UsgsLidarControl implements IControl {
     this._boundMouseDown = (e: MapMouseEvent) => {
       e.preventDefault();
       this._drawStartPoint = { lng: e.lngLat.lng, lat: e.lngLat.lat };
-      console.log('Draw started at:', this._drawStartPoint);
     };
 
     this._boundMouseMove = (e: MapMouseEvent) => {
@@ -502,12 +507,9 @@ export class UsgsLidarControl implements IControl {
         const minDrag = 0.0001; // Small threshold to detect actual drag
         if (Math.abs(east - west) > minDrag || Math.abs(north - south) > minDrag) {
           const bbox: [number, number, number, number] = [west, south, east, north];
-          console.log('Draw completed, bbox:', bbox);
           this.setState({ drawnBbox: bbox, isDrawing: false });
           this._updateDrawLayer(bbox);
           this._emit('drawend');
-        } else {
-          console.log('Draw cancelled - no drag detected');
         }
       }
       this._drawStartPoint = null;
@@ -612,33 +614,24 @@ export class UsgsLidarControl implements IControl {
    * @param item - STAC item to load
    */
   async loadItem(item: StacItem): Promise<void> {
-    console.log('loadItem called for:', item.id);
-
     // Wait for initialization if not ready
     if (!this._initialized) {
-      console.log('Waiting for initialization...');
       await this._waitForInit();
     }
 
     if (!this._lidarControl) {
-      const error = new Error('LiDAR control not available');
-      console.error(error);
-      throw error;
+      throw new Error('LiDAR control not available');
     }
 
     this._emit('loadstart');
 
     try {
-      console.log('Getting COPC URL...');
       const url = await this._stacSearcher.getCopcUrl(item);
-      console.log('COPC URL:', url);
 
       // Track URL to item ID mapping
       this._urlToItemId.set(url, item.id);
 
-      console.log('Loading point cloud...');
       const info = await this._lidarControl.loadPointCloud(url);
-      console.log('Point cloud loaded:', info);
 
       const loadedItems = new Map(this._state.loadedItems);
       loadedItems.set(item.id, info);
@@ -652,7 +645,6 @@ export class UsgsLidarControl implements IControl {
       this._emitWithData('loadcomplete', { pointCloud: info });
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error('Load error:', err);
       this._emitWithData('loaderror', { error: err });
       throw err;
     }
@@ -683,18 +675,16 @@ export class UsgsLidarControl implements IControl {
    * Loads all selected items.
    */
   async loadSelectedItems(): Promise<void> {
-    console.log('loadSelectedItems called');
     const selectedItems = this._state.searchResults.filter((item) =>
       this._state.selectedItems.has(item.id)
     );
-    console.log('Selected items to load:', selectedItems.length);
 
     for (const item of selectedItems) {
       if (!this._state.loadedItems.has(item.id)) {
         try {
           await this.loadItem(item);
-        } catch (error) {
-          console.error('Failed to load item:', item.id, error);
+        } catch {
+          // Individual load failures are handled by loadItem
         }
       }
     }
@@ -1041,15 +1031,13 @@ export class UsgsLidarControl implements IControl {
         onClearDrawn: () => this.clearDrawnBbox(),
         onItemSelect: (item) => this.toggleItemSelection(item),
         onItemLoad: (item) => {
-          console.log('onItemLoad callback triggered for:', item.id);
-          this.loadItem(item).catch((err) => {
-            console.error('Failed to load item:', err);
+          this.loadItem(item).catch(() => {
+            // Errors are handled via events
           });
         },
         onLoadSelected: () => {
-          console.log('onLoadSelected callback triggered');
-          this.loadSelectedItems().catch((err) => {
-            console.error('Failed to load selected items:', err);
+          this.loadSelectedItems().catch(() => {
+            // Errors are handled via events
           });
         },
         onCopySignedUrls: () => {
