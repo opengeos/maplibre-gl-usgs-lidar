@@ -703,6 +703,9 @@ export class UsgsLidarControl implements IControl {
       loadedItems.delete(itemId);
       this.setState({ loadedItems });
 
+      // Emit unload event
+      this._emitWithData('unload', { itemId });
+
       // Hide visualization section if no items loaded
       if (loadedItems.size === 0 && this._panelBuilder) {
         this._panelBuilder.showVisualizationSection(false);
@@ -714,9 +717,16 @@ export class UsgsLidarControl implements IControl {
    * Clears all loaded items.
    */
   clearLoadedItems(): void {
+    // Emit unload events for each item before clearing
+    const itemIds = Array.from(this._state.loadedItems.keys());
     this._lidarControl?.unloadPointCloud();
     this.setState({ loadedItems: new Map() });
     this._urlToItemId.clear();
+
+    // Emit unload event for each removed item
+    for (const itemId of itemIds) {
+      this._emitWithData('unload', { itemId });
+    }
 
     // Hide visualization section
     if (this._panelBuilder) {
