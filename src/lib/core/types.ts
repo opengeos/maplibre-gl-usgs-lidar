@@ -157,6 +157,14 @@ export interface UsgsLidarControlOptions {
 export type SearchMode = 'extent' | 'draw' | 'none';
 
 /**
+ * Extended point cloud info that includes the STAC item name
+ */
+export interface LoadedItemInfo extends PointCloudInfo {
+  /** Human-readable name from the STAC item */
+  name: string;
+}
+
+/**
  * Internal state of the USGS LiDAR control
  */
 export interface UsgsLidarState {
@@ -185,8 +193,8 @@ export interface UsgsLidarState {
   /** Total matched items from search */
   totalMatched: number | null;
 
-  /** Map of loaded items (itemId -> PointCloudInfo) */
-  loadedItems: Map<string, PointCloudInfo>;
+  /** Map of loaded items (itemId -> LoadedItemInfo) */
+  loadedItems: Map<string, LoadedItemInfo>;
   /** Current LiDAR control state */
   lidarState: LidarState | null;
 }

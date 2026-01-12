@@ -8,10 +8,12 @@ import type {
   UsgsLidarEventHandler,
   UsgsLidarEventData,
   StacItem,
+  LoadedItemInfo,
 } from './types';
 import { StacSearcher } from '../stac/StacSearcher';
 import { FootprintLayer } from '../results/FootprintLayer';
 import { PanelBuilder } from '../gui/PanelBuilder';
+import { getItemShortName } from '../utils';
 
 const DEFAULT_OPTIONS: Required<
   Omit<UsgsLidarControlOptions, 'className' | 'lidarControlOptions'>
@@ -636,7 +638,13 @@ export class UsgsLidarControl implements IControl {
       // Track URL to item ID mapping
       this._urlToItemId.set(url, item.id);
 
-      const info = await this._lidarControl.loadPointCloud(url);
+      const pointCloudInfo = await this._lidarControl.loadPointCloud(url);
+
+      // Create LoadedItemInfo with the STAC item name
+      const info: LoadedItemInfo = {
+        ...pointCloudInfo,
+        name: getItemShortName(item.id),
+      };
 
       const loadedItems = new Map(this._state.loadedItems);
       loadedItems.set(item.id, info);
