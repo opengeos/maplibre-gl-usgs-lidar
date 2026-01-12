@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import maplibregl, { Map } from 'maplibre-gl';
-import { Geoman } from '@geoman-io/maplibre-geoman-free';
 import { UsgsLidarControlReact, useUsgsLidarState } from '../../src/react';
 import type { StacItem } from '../../src/index';
 import '../../src/index.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import '@geoman-io/maplibre-geoman-free/dist/maplibre-geoman.css';
-import 'maplibre-gl-geo-editor/style.css';
 import 'maplibre-gl-lidar/style.css';
 
 /**
@@ -16,7 +13,6 @@ import 'maplibre-gl-lidar/style.css';
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<Map | null>(null);
-  const [geomanReady, setGeomanReady] = useState(false);
   const { state, toggle } = useUsgsLidarState({ collapsed: false });
   const [searchResults, setSearchResults] = useState<StacItem[]>([]);
 
@@ -38,13 +34,7 @@ function App() {
     mapInstance.addControl(new maplibregl.ScaleControl(), 'bottom-right');
 
     mapInstance.on('load', () => {
-      // Initialize Geoman
-      const geoman = new Geoman(mapInstance, {});
-
-      mapInstance.on('gm:loaded', () => {
-        setGeomanReady(true);
-        setMap(mapInstance);
-      });
+      setMap(mapInstance);
     });
 
     return () => {
@@ -127,7 +117,7 @@ function App() {
       </div>
 
       {/* USGS LiDAR control */}
-      {map && geomanReady && (
+      {map && (
         <UsgsLidarControlReact
           map={map}
           title="USGS 3DEP LiDAR"

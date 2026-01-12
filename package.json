@@ -84,7 +84,7 @@
     }
   },
   "dependencies": {
-    "maplibre-gl-lidar": "^0.3.2"
+    "maplibre-gl-lidar": "^0.4.0"
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
