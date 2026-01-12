@@ -26,6 +26,7 @@ export type {
   StacAsset,
   StacLink,
   SearchMode,
+  LoadedItemInfo,
 } from './lib/core/types';
 
 export type { FootprintLayerOptions } from './lib/results';
