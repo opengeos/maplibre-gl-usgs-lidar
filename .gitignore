@@ -3,6 +3,7 @@ node_modules/
 dist-examples/
 coverage/
 *.tsbuildinfo
+.vite/
 
 # IDE
 .vscode/

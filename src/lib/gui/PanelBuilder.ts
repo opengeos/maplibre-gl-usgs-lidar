@@ -488,7 +488,7 @@ export class PanelBuilder {
       if (parseFloat(zOffsetSlider.value) !== lidarState.zOffset) {
         zOffsetSlider.value = String(lidarState.zOffset);
         if (zOffsetValue) {
-          zOffsetValue.textContent = `${lidarState.zOffset}m`;
+          zOffsetValue.textContent = `${Math.round(lidarState.zOffset)}m`;
         }
       }
     }
@@ -646,7 +646,7 @@ export class PanelBuilder {
     zOffsetSlider.addEventListener('input', () => {
       const offset = parseFloat(zOffsetSlider.value);
       this._callbacks.onZOffsetChange(offset);
-      zOffsetValue.textContent = `${offset}m`;
+      zOffsetValue.textContent = `${Math.round(offset)}m`;
     });
     zOffsetRow.appendChild(zOffsetSlider);
 

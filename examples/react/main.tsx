@@ -23,8 +23,8 @@ function App() {
     const mapInstance = new maplibregl.Map({
       container: mapContainer.current,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      center: [-105.2705, 40.015],
-      zoom: 10,
+      center: [-104.9847, 39.7392],
+      zoom: 14,
       maxPitch: 85,
     });
 

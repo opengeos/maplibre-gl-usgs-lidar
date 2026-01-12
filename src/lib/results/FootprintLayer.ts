@@ -347,15 +347,30 @@ export class FootprintLayer {
 
     console.log('FootprintLayer: Updating layer with', this._items.length, 'items');
 
-    const features: Feature[] = this._items.map((item) => ({
-      type: 'Feature',
-      properties: {
-        id: item.id,
-        datetime: item.properties.datetime,
-        pointCount: item.properties['pc:count'] || item.properties['pointcloud:count'],
-      },
-      geometry: item.geometry,
-    }));
+    // Use bbox to create rectangular footprints instead of geometry
+    // The STAC geometry can be irregular (clipped to boundaries), but the actual
+    // LiDAR tile extent is rectangular based on the bbox
+    const features: Feature[] = this._items.map((item) => {
+      const [west, south, east, north] = this._extractBbox2D(item.bbox);
+      return {
+        type: 'Feature',
+        properties: {
+          id: item.id,
+          datetime: item.properties.datetime,
+          pointCount: item.properties['pc:count'] || item.properties['pointcloud:count'],
+        },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [west, south],
+            [east, south],
+            [east, north],
+            [west, north],
+            [west, south],
+          ]],
+        },
+      };
+    });
 
     const data: FeatureCollection = {
       type: 'FeatureCollection',
