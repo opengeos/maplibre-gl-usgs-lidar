@@ -46,13 +46,13 @@ EXPOSE 80
 RUN printf '#!/bin/sh\n\
 echo ""\n\
 echo "======================================================"\n\
-echo "  MapLibre GL Plugin Template Examples"\n\
+echo "  MapLibre GL USGS LiDAR Examples"\n\
 echo "======================================================"\n\
 echo ""\n\
 echo "  Server running on port 80"\n\
 echo ""\n\
 echo "  If you ran: docker run -p 8080:80 ..."\n\
-echo "  Open: http://localhost:8080/maplibre-gl-plugin-template/"\n\
+echo "  Open: http://localhost:8080/maplibre-gl-usgs-lidar/"\n\
 echo ""\n\
 echo "======================================================"\n\
 echo ""\n\

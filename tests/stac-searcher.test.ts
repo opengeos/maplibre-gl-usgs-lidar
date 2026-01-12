@@ -24,7 +24,7 @@ describe('StacSearcher', () => {
     });
 
     it('should accept custom base URL and collection', () => {
-      const customSearcher = new StacSearcher('https://custom.api', 'custom-collection');
+      const customSearcher = new StacSearcher('https://custom.api', 'https://custom.sas', 'custom-collection');
       expect(customSearcher.baseUrl).toBe('https://custom.api');
       expect(customSearcher.collection).toBe('custom-collection');
     });
@@ -100,13 +100,17 @@ describe('StacSearcher', () => {
         },
       };
 
+      // Mock the SAS token endpoint response
       fetchSpy.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ href: 'https://signed-url.com/file.copc.laz?sig=xxx' }),
+        json: () => Promise.resolve({
+          token: 'sig=xxx',
+          'msft:expiry': new Date(Date.now() + 3600000).toISOString()
+        }),
       } as Response);
 
       const url = await searcher.getCopcUrl(item as any);
-      expect(url).toBe('https://signed-url.com/file.copc.laz?sig=xxx');
+      expect(url).toBe('https://storage.blob.core.windows.net/data/file.copc.laz?sig=xxx');
     });
 
     it('should return unsigned URL when signing fails', async () => {

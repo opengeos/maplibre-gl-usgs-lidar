@@ -155,8 +155,9 @@ export class StacSearcher {
       const separator = asset.href.includes('?') ? '&' : '?';
       return `${asset.href}${separator}${token}`;
     } catch (error) {
-      console.error('Failed to get SAS token:', error);
-      throw error;
+      // Fall back to unsigned URL if SAS token fetch fails
+      console.error('Failed to get SAS token, returning unsigned URL:', error);
+      return asset.href;
     }
   }
 
