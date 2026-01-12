@@ -1,0 +1,466 @@
+/* USGS LiDAR Control Styles */
+
+/* Control button */
+.usgs-lidar-control {
+  background: #fff;
+  border-radius: 4px;
+}
+
+.usgs-lidar-control-toggle {
+  width: 29px;
+  height: 29px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.usgs-lidar-control-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.usgs-lidar-control-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.usgs-lidar-control-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: #333;
+}
+
+/* Panel */
+.usgs-lidar-control-panel {
+  position: absolute;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.usgs-lidar-control-panel.expanded {
+  display: flex;
+}
+
+/* Header */
+.usgs-lidar-control-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.usgs-lidar-control-title {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.usgs-lidar-control-close {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.usgs-lidar-control-close:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #333;
+}
+
+/* Panel content */
+.usgs-lidar-panel-content {
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Sections */
+.usgs-lidar-section {
+  border-bottom: 1px solid #e9ecef;
+}
+
+.usgs-lidar-section:last-child {
+  border-bottom: none;
+}
+
+.usgs-lidar-section-header {
+  padding: 10px 16px;
+  font-weight: 600;
+  color: #555;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #f8f9fa;
+}
+
+.usgs-lidar-section-header span {
+  font-weight: 400;
+  color: #888;
+  margin-left: 4px;
+}
+
+.usgs-lidar-section-content {
+  padding: 12px 16px;
+}
+
+/* Buttons */
+.usgs-lidar-button-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.usgs-lidar-button-row:last-child {
+  margin-bottom: 0;
+}
+
+.usgs-lidar-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+.usgs-lidar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.usgs-lidar-btn-primary {
+  background: #4a90d9;
+  color: white;
+}
+
+.usgs-lidar-btn-primary:hover:not(:disabled) {
+  background: #3a7fc8;
+}
+
+.usgs-lidar-btn-secondary {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.usgs-lidar-btn-secondary:hover:not(:disabled) {
+  background: #dee2e6;
+}
+
+.usgs-lidar-btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.usgs-lidar-btn-danger:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.usgs-lidar-btn-full {
+  flex: 1;
+  width: 100%;
+}
+
+.usgs-lidar-btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #495057;
+  transition: background-color 0.15s;
+  flex-shrink: 0;
+}
+
+.usgs-lidar-btn-icon:hover {
+  background: #f8f9fa;
+}
+
+.usgs-lidar-btn-remove {
+  color: #dc3545;
+}
+
+.usgs-lidar-btn-remove:hover {
+  background: #fff5f5;
+}
+
+/* Bbox info */
+.usgs-lidar-bbox-info {
+  padding: 8px 10px;
+  background: #e7f5ff;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #1864ab;
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+
+/* Loading */
+.usgs-lidar-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.usgs-lidar-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e9ecef;
+  border-top-color: #4a90d9;
+  border-radius: 50%;
+  animation: usgs-lidar-spin 0.8s linear infinite;
+}
+
+@keyframes usgs-lidar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error */
+.usgs-lidar-error {
+  padding: 8px 10px;
+  background: #fff5f5;
+  border-radius: 4px;
+  color: #c92a2a;
+  font-size: 12px;
+}
+
+/* Results list */
+.usgs-lidar-results-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.usgs-lidar-result-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f3f5;
+  transition: background-color 0.15s;
+}
+
+.usgs-lidar-result-item:last-child {
+  border-bottom: none;
+}
+
+.usgs-lidar-result-item:hover {
+  background: #f8f9fa;
+}
+
+.usgs-lidar-result-item.selected {
+  background: #e7f5ff;
+}
+
+.usgs-lidar-result-item.loaded {
+  opacity: 0.7;
+}
+
+.usgs-lidar-result-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.usgs-lidar-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.usgs-lidar-result-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.usgs-lidar-result-meta {
+  font-size: 11px;
+  color: #868e96;
+}
+
+.usgs-lidar-loaded-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: #d3f9d8;
+  color: #2b8a3e;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Loaded list */
+.usgs-lidar-loaded-list {
+  margin-bottom: 10px;
+}
+
+.usgs-lidar-loaded-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.usgs-lidar-loaded-item:last-child {
+  border-bottom: none;
+}
+
+.usgs-lidar-loaded-name {
+  flex: 1;
+  font-size: 12px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.usgs-lidar-loaded-points {
+  font-size: 11px;
+  color: #868e96;
+  flex-shrink: 0;
+}
+
+/* Visualization controls */
+.usgs-lidar-control-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.usgs-lidar-control-row:last-child {
+  margin-bottom: 0;
+}
+
+.usgs-lidar-control-row label {
+  width: 70px;
+  font-size: 12px;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.usgs-lidar-select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.usgs-lidar-select:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+.usgs-lidar-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e9ecef;
+  border-radius: 2px;
+  outline: none;
+}
+
+.usgs-lidar-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #4a90d9;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.usgs-lidar-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #4a90d9;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.usgs-lidar-slider-value {
+  width: 30px;
+  text-align: right;
+  font-size: 12px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.usgs-lidar-slider-value-wide {
+  width: 55px;
+}
+
+/* Notifications */
+.usgs-lidar-notification {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: #2b8a3e;
+  color: white;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  animation: usgs-lidar-notification-in 0.2s ease-out;
+}
+
+.usgs-lidar-notification.error {
+  background: #c92a2a;
+}
+
+@keyframes usgs-lidar-notification-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
