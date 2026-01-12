@@ -7,7 +7,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  base: '/maplibre-gl-usgs-lidar/',
+  base: '/',
+  publicDir: 'public',
   build: {
     outDir: 'dist-examples',
     rollupOptions: {

@@ -625,6 +625,11 @@ export class UsgsLidarControl implements IControl {
 
     this._emit('loadstart');
 
+    // Set cursor to waiting
+    if (this._map) {
+      this._map.getCanvas().style.cursor = 'wait';
+    }
+
     try {
       const url = await this._stacSearcher.getCopcUrl(item);
 
@@ -647,6 +652,11 @@ export class UsgsLidarControl implements IControl {
       const err = error instanceof Error ? error : new Error(String(error));
       this._emitWithData('loaderror', { error: err });
       throw err;
+    } finally {
+      // Reset cursor
+      if (this._map) {
+        this._map.getCanvas().style.cursor = '';
+      }
     }
   }
 

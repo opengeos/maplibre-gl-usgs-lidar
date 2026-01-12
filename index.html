@@ -3,179 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MapLibre GL USGS LiDAR - Examples</title>
+  <title>USGS 3DEP LiDAR - Basic Example</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.0.0/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="https://unpkg.com/@geoman-io/maplibre-geoman-free@0.6.1/dist/maplibre-geoman.css">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl-geo-editor@0.3.2/dist/maplibre-gl-geo-editor.css">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl-lidar@0.3.1/dist/maplibre-gl-lidar.css">
   <style>
-    * {
+    body {
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1a5f2c 0%, #2d8a46 50%, #45a049 100%);
-      min-height: 100vh;
-      padding: 40px 20px;
     }
-
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
+    #map {
+      width: 100vw;
+      height: 100vh;
     }
-
-    h1 {
-      color: white;
-      text-align: center;
-      margin-bottom: 10px;
-      font-size: 2.5rem;
-    }
-
-    .subtitle {
-      color: rgba(255, 255, 255, 0.9);
-      text-align: center;
-      margin-bottom: 40px;
-      font-size: 1.1rem;
-    }
-
-    .examples-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    .example-card {
+    .info-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
       background: white;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      transition: transform 0.2s, box-shadow 0.2s;
-      text-decoration: none;
-      color: inherit;
-      display: block;
+      padding: 12px 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      font-size: 13px;
+      max-width: 300px;
+      z-index: 1;
     }
-
-    .example-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+    .info-panel h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
     }
-
-    .example-card h2 {
-      color: #333;
-      margin-bottom: 8px;
-      font-size: 1.3rem;
-    }
-
-    .example-card p {
+    .info-panel p {
+      margin: 0;
       color: #666;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      margin-bottom: 16px;
-    }
-
-    .example-card .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .tag {
-      background: #f0f0f0;
-      color: #555;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-
-    .tag.vanilla { background: #fff3e0; color: #ef6c00; }
-    .tag.react { background: #e1f5fe; color: #0277bd; }
-    .tag.typescript { background: #e3f2fd; color: #1565c0; }
-    .tag.lidar { background: #e8f5e9; color: #2e7d32; }
-    .tag.stac { background: #fce4ec; color: #c2185b; }
-
-    .features {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 24px;
-      margin-top: 40px;
-    }
-
-    .features h2 {
-      color: white;
-      margin-bottom: 16px;
-      font-size: 1.3rem;
-    }
-
-    .features ul {
-      color: rgba(255, 255, 255, 0.9);
-      padding-left: 20px;
-      line-height: 1.8;
-    }
-
-    .footer {
-      text-align: center;
-      margin-top: 40px;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .footer a {
-      color: white;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .footer a:hover {
-      text-decoration: underline;
+      line-height: 1.4;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>MapLibre GL USGS LiDAR</h1>
-    <p class="subtitle">Search and visualize USGS 3DEP LiDAR COPC data from Microsoft Planetary Computer</p>
-
-    <div class="examples-grid">
-      <a href="./examples/basic/index.html" class="example-card">
-        <h2>Basic Example</h2>
-        <p>Vanilla JavaScript/TypeScript example showing how to add the USGS LiDAR control to a MapLibre GL map.</p>
-        <div class="tags">
-          <span class="tag vanilla">Vanilla JS</span>
-          <span class="tag typescript">TypeScript</span>
-          <span class="tag lidar">LiDAR</span>
-        </div>
-      </a>
-
-      <a href="./examples/react/index.html" class="example-card">
-        <h2>React Example</h2>
-        <p>React example demonstrating the React wrapper component and custom hooks integration.</p>
-        <div class="tags">
-          <span class="tag react">React</span>
-          <span class="tag typescript">TypeScript</span>
-          <span class="tag stac">STAC</span>
-        </div>
-      </a>
-    </div>
-
-    <div class="features">
-      <h2>Features</h2>
-      <ul>
-        <li>Search USGS 3DEP LiDAR data by map extent or custom bounding box</li>
-        <li>View search results with item footprints on the map</li>
-        <li>Load and visualize COPC point cloud data</li>
-        <li>Dynamic streaming for efficient handling of large datasets</li>
-        <li>Customizable color schemes (elevation, intensity, classification, RGB)</li>
-        <li>React components and hooks for easy integration</li>
-        <li>TypeScript support with full type definitions</li>
-      </ul>
-    </div>
-
-    <div class="footer">
-      <p>
-        <a href="https://github.com/opengeos/maplibre-gl-usgs-lidar">GitHub</a> ·
-        <a href="https://www.npmjs.com/package/maplibre-gl-usgs-lidar">npm</a> ·
-        <a href="https://planetarycomputer.microsoft.com/dataset/3dep-lidar-copc">Data Source</a>
-      </p>
-    </div>
+  <div id="map"></div>
+  <div class="info-panel">
+    <h3>USGS 3DEP LiDAR Viewer</h3>
+    <p>Click the LiDAR control button in the top-right corner to search for and visualize USGS 3DEP LiDAR data from Planetary Computer.</p>
   </div>
+  <script type="module" src="./examples/basic/main.ts"></script>
 </body>
 </html>
