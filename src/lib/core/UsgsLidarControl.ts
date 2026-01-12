@@ -910,6 +910,52 @@ export class UsgsLidarControl implements IControl {
     this._lidarControl?.setZOffset(offset);
   }
 
+  /**
+   * Sets whether points are pickable (enables hover/click interactions).
+   *
+   * @param pickable - Whether points should be pickable
+   */
+  setPickable(pickable: boolean): void {
+    this._lidarControl?.setPickable(pickable);
+  }
+
+  /**
+   * Sets the elevation range filter.
+   *
+   * @param range - Elevation range [min, max] or null to clear
+   */
+  setElevationRange(range: [number, number] | null): void {
+    if (range) {
+      this._lidarControl?.setElevationRange(range[0], range[1]);
+    } else {
+      this._lidarControl?.clearElevationRange();
+    }
+  }
+
+  /**
+   * Sets visibility for a specific classification.
+   *
+   * @param code - Classification code
+   * @param visible - Whether to show the classification
+   */
+  setClassificationVisibility(code: number, visible: boolean): void {
+    this._lidarControl?.setClassificationVisibility(code, visible);
+  }
+
+  /**
+   * Shows all classifications (makes all visible).
+   */
+  showAllClassifications(): void {
+    this._lidarControl?.showAllClassifications();
+  }
+
+  /**
+   * Hides all classifications.
+   */
+  hideAllClassifications(): void {
+    this._lidarControl?.hideAllClassifications();
+  }
+
   // ==================== Private Methods ====================
 
   private _emit(event: UsgsLidarControlEvent): void {
@@ -1023,6 +1069,11 @@ export class UsgsLidarControl implements IControl {
         onOpacityChange: (opacity) => this.setOpacity(opacity),
         onColorSchemeChange: (scheme) => this.setColorScheme(scheme as ColorScheme),
         onZOffsetChange: (offset) => this.setZOffset(offset),
+        onPickableChange: (pickable) => this.setPickable(pickable),
+        onElevationRangeChange: (range) => this.setElevationRange(range),
+        onClassificationToggle: (code, visible) => this.setClassificationVisibility(code, visible),
+        onClassificationShowAll: () => this.showAllClassifications(),
+        onClassificationHideAll: () => this.hideAllClassifications(),
       },
       this._state
     );

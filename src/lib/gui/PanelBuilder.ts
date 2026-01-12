@@ -1,5 +1,35 @@
 import type { StacItem, UsgsLidarState } from '../core/types';
 import { formatPointCount, getItemShortName, formatBbox, getItemMetadata } from '../utils';
+import { getClassificationName } from 'maplibre-gl-lidar';
+
+/**
+ * ASPRS Standard LiDAR Classification Colors (RGB)
+ */
+const CLASSIFICATION_COLORS: { [key: number]: [number, number, number] } = {
+  0: [128, 128, 128], // Never Classified (gray)
+  1: [128, 128, 128], // Unassigned (gray)
+  2: [139, 90, 43], // Ground (brown)
+  3: [34, 139, 34], // Low Vegetation (light green)
+  4: [0, 128, 0], // Medium Vegetation (medium green)
+  5: [0, 100, 0], // High Vegetation (dark green)
+  6: [255, 165, 0], // Building (orange)
+  7: [255, 0, 0], // Low Point (Noise) (red)
+  8: [128, 128, 128], // Reserved (gray)
+  9: [0, 0, 255], // Water (blue)
+  10: [255, 255, 0], // Rail (yellow)
+  11: [128, 128, 128], // Road Surface (gray)
+  12: [128, 128, 128], // Reserved (gray)
+  13: [255, 255, 0], // Wire - Guard (yellow)
+  14: [255, 255, 0], // Wire - Conductor (yellow)
+  15: [128, 0, 128], // Transmission Tower (purple)
+  16: [255, 255, 0], // Wire - Connector (yellow)
+  17: [192, 192, 192], // Bridge Deck (light gray)
+  18: [255, 69, 0], // High Noise (orange-red)
+  19: [160, 82, 45], // Overhead Structure (sienna)
+  20: [173, 216, 230], // Ignored Ground (light blue)
+  21: [245, 245, 220], // Snow (beige)
+  22: [210, 180, 140], // Temporal Exclusion (tan)
+};
 
 /**
  * Callbacks for panel interactions
@@ -22,6 +52,11 @@ export interface PanelCallbacks {
   onOpacityChange: (opacity: number) => void;
   onColorSchemeChange: (scheme: string) => void;
   onZOffsetChange: (offset: number) => void;
+  onPickableChange: (pickable: boolean) => void;
+  onElevationRangeChange: (range: [number, number] | null) => void;
+  onClassificationToggle: (classificationCode: number, visible: boolean) => void;
+  onClassificationShowAll: () => void;
+  onClassificationHideAll: () => void;
 }
 
 /**
@@ -37,6 +72,17 @@ export class PanelBuilder {
   private _resultsSection: HTMLElement | null = null;
   private _loadedSection: HTMLElement | null = null;
   private _vizSection: HTMLElement | null = null;
+
+  // New UI element references for point picking, elevation filter, and classification
+  private _pickableCheckbox: HTMLInputElement | null = null;
+  private _elevationCheckbox: HTMLInputElement | null = null;
+  private _elevationSliderContainer: HTMLElement | null = null;
+  private _elevationRangeValue: HTMLElement | null = null;
+  private _elevationMinInput: HTMLInputElement | null = null;
+  private _elevationMaxInput: HTMLInputElement | null = null;
+  private _elevationTrackFill: HTMLElement | null = null;
+  private _classificationLegendContainer: HTMLElement | null = null;
+  private _classificationCheckboxes: Map<number, HTMLInputElement> = new Map();
 
   constructor(callbacks: PanelCallbacks, state: UsgsLidarState) {
     this._callbacks = callbacks;
@@ -524,7 +570,44 @@ export class PanelBuilder {
       const scheme = typeof lidarState.colorScheme === 'string' ? lidarState.colorScheme : null;
       if (scheme && colorSelect.value !== scheme) {
         colorSelect.value = scheme;
+        this._updateClassificationLegendVisibility(scheme);
       }
+    }
+
+    // Sync pickable checkbox
+    if (this._pickableCheckbox && lidarState.pickable !== undefined) {
+      if (this._pickableCheckbox.checked !== lidarState.pickable) {
+        this._pickableCheckbox.checked = lidarState.pickable;
+      }
+    }
+
+    // Sync elevation filter state
+    if (this._elevationCheckbox && lidarState.elevationRange !== undefined) {
+      const hasFilter = lidarState.elevationRange !== null;
+      if (this._elevationCheckbox.checked !== hasFilter) {
+        this._elevationCheckbox.checked = hasFilter;
+        if (this._elevationSliderContainer) {
+          this._elevationSliderContainer.style.display = hasFilter ? 'flex' : 'none';
+        }
+      }
+      if (hasFilter && lidarState.elevationRange) {
+        const [min, max] = lidarState.elevationRange;
+        if (this._elevationMinInput) {
+          this._elevationMinInput.value = String(min);
+        }
+        if (this._elevationMaxInput) {
+          this._elevationMaxInput.value = String(max);
+        }
+        if (this._elevationRangeValue) {
+          this._elevationRangeValue.textContent = `${Math.round(min)} - ${Math.round(max)}`;
+        }
+        this._updateElevationTrackFill();
+      }
+    }
+
+    // Update classification legend if classifications changed
+    if (lidarState.availableClassifications) {
+      this.updateClassificationLegend();
     }
   }
 
@@ -556,15 +639,19 @@ export class PanelBuilder {
     ['elevation', 'intensity', 'classification', 'rgb'].forEach((scheme) => {
       const option = document.createElement('option');
       option.value = scheme;
-      option.textContent = scheme.charAt(0).toUpperCase() + scheme.slice(1);
+      option.textContent = scheme === 'rgb' ? 'RGB' : scheme.charAt(0).toUpperCase() + scheme.slice(1);
       colorSelect.appendChild(option);
     });
     colorSelect.addEventListener('change', () => {
       this._callbacks.onColorSchemeChange(colorSelect.value);
+      this._updateClassificationLegendVisibility(colorSelect.value);
     });
     colorRow.appendChild(colorSelect);
 
     content.appendChild(colorRow);
+
+    // Classification legend (shown only when classification color scheme is selected)
+    content.appendChild(this._buildClassificationLegend());
 
     // Point size slider
     const sizeRow = document.createElement('div');
@@ -626,7 +713,7 @@ export class PanelBuilder {
 
     content.appendChild(opacityRow);
 
-    // Z Offset slider (to adjust for absolute elevation)
+    // Z Offset slider (to adjust for absolute elevation) - moved up, right after opacity
     const zOffsetRow = document.createElement('div');
     zOffsetRow.className = 'usgs-lidar-control-row';
 
@@ -658,6 +745,12 @@ export class PanelBuilder {
 
     content.appendChild(zOffsetRow);
 
+    // Enable point picking checkbox
+    content.appendChild(this._buildPickableCheckbox());
+
+    // Elevation filter checkbox with dual range slider
+    content.appendChild(this._buildElevationFilter());
+
     section.appendChild(content);
     return section;
   }
@@ -669,6 +762,346 @@ export class PanelBuilder {
     const section = document.getElementById('usgs-lidar-viz-section');
     if (section) {
       section.style.display = show ? 'block' : 'none';
+    }
+  }
+
+  /**
+   * Builds the point picking checkbox.
+   */
+  private _buildPickableCheckbox(): HTMLElement {
+    const group = document.createElement('div');
+    group.className = 'usgs-lidar-checkbox-row';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'usgs-lidar-pickable-checkbox';
+    checkbox.checked = this._state.lidarState?.pickable ?? false;
+    this._pickableCheckbox = checkbox;
+
+    const label = document.createElement('label');
+    label.htmlFor = 'usgs-lidar-pickable-checkbox';
+    label.textContent = 'Enable point picking';
+
+    checkbox.addEventListener('change', () => {
+      this._callbacks.onPickableChange(checkbox.checked);
+    });
+
+    group.appendChild(checkbox);
+    group.appendChild(label);
+
+    return group;
+  }
+
+  /**
+   * Builds the elevation filter controls with checkbox and dual-thumb range slider.
+   */
+  private _buildElevationFilter(): HTMLElement {
+    const group = document.createElement('div');
+    group.className = 'usgs-lidar-checkbox-group';
+
+    // Checkbox row
+    const checkboxRow = document.createElement('div');
+    checkboxRow.className = 'usgs-lidar-checkbox-row';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'usgs-lidar-elevation-checkbox';
+    checkbox.checked = false;
+    this._elevationCheckbox = checkbox;
+
+    const label = document.createElement('label');
+    label.htmlFor = 'usgs-lidar-elevation-checkbox';
+    label.textContent = 'Elevation Filter';
+
+    checkboxRow.appendChild(checkbox);
+    checkboxRow.appendChild(label);
+    group.appendChild(checkboxRow);
+
+    // Dual range slider container (hidden by default)
+    const sliderContainer = document.createElement('div');
+    sliderContainer.className = 'usgs-lidar-dual-range-row';
+    sliderContainer.style.display = 'none';
+    this._elevationSliderContainer = sliderContainer;
+
+    // Get elevation bounds from loaded point clouds
+    const bounds = this._getElevationBounds();
+
+    // Label
+    const rangeLabel = document.createElement('label');
+    rangeLabel.textContent = 'Range (m)';
+    sliderContainer.appendChild(rangeLabel);
+
+    // Dual range slider wrapper
+    const sliderWrapper = document.createElement('div');
+    sliderWrapper.className = 'usgs-lidar-dual-range-slider';
+
+    // Track background
+    const track = document.createElement('div');
+    track.className = 'usgs-lidar-dual-range-track';
+    sliderWrapper.appendChild(track);
+
+    // Track fill (colored portion between thumbs)
+    const trackFill = document.createElement('div');
+    trackFill.className = 'usgs-lidar-dual-range-fill';
+    this._elevationTrackFill = trackFill;
+    sliderWrapper.appendChild(trackFill);
+
+    // Min slider (lower thumb)
+    const minInput = document.createElement('input');
+    minInput.type = 'range';
+    minInput.className = 'usgs-lidar-dual-range-input usgs-lidar-dual-range-min';
+    minInput.min = String(bounds.min);
+    minInput.max = String(bounds.max);
+    minInput.step = '1';
+    minInput.value = String(bounds.min);
+    this._elevationMinInput = minInput;
+    sliderWrapper.appendChild(minInput);
+
+    // Max slider (upper thumb)
+    const maxInput = document.createElement('input');
+    maxInput.type = 'range';
+    maxInput.className = 'usgs-lidar-dual-range-input usgs-lidar-dual-range-max';
+    maxInput.min = String(bounds.min);
+    maxInput.max = String(bounds.max);
+    maxInput.step = '1';
+    maxInput.value = String(bounds.max);
+    this._elevationMaxInput = maxInput;
+    sliderWrapper.appendChild(maxInput);
+
+    sliderContainer.appendChild(sliderWrapper);
+
+    // Range value display
+    const rangeValue = document.createElement('span');
+    rangeValue.className = 'usgs-lidar-dual-range-value';
+    rangeValue.textContent = `${bounds.min} - ${bounds.max}`;
+    this._elevationRangeValue = rangeValue;
+    sliderContainer.appendChild(rangeValue);
+
+    group.appendChild(sliderContainer);
+
+    // Event handlers
+    const updateElevationRange = () => {
+      if (checkbox.checked) {
+        const min = parseFloat(minInput.value);
+        const max = parseFloat(maxInput.value);
+        this._callbacks.onElevationRangeChange([min, max]);
+      }
+    };
+
+    const updateDisplay = () => {
+      const min = parseFloat(minInput.value);
+      const max = parseFloat(maxInput.value);
+      rangeValue.textContent = `${Math.round(min)} - ${Math.round(max)}`;
+      this._updateElevationTrackFill();
+    };
+
+    minInput.addEventListener('input', () => {
+      const minVal = parseFloat(minInput.value);
+      const maxVal = parseFloat(maxInput.value);
+      // Ensure min doesn't exceed max
+      if (minVal > maxVal) {
+        minInput.value = maxInput.value;
+      }
+      updateDisplay();
+      updateElevationRange();
+    });
+
+    maxInput.addEventListener('input', () => {
+      const minVal = parseFloat(minInput.value);
+      const maxVal = parseFloat(maxInput.value);
+      // Ensure max doesn't go below min
+      if (maxVal < minVal) {
+        maxInput.value = minInput.value;
+      }
+      updateDisplay();
+      updateElevationRange();
+    });
+
+    checkbox.addEventListener('change', () => {
+      sliderContainer.style.display = checkbox.checked ? 'flex' : 'none';
+      if (checkbox.checked) {
+        // Update bounds when enabling filter
+        const newBounds = this._getElevationBounds();
+        minInput.min = String(newBounds.min);
+        minInput.max = String(newBounds.max);
+        minInput.value = String(newBounds.min);
+        maxInput.min = String(newBounds.min);
+        maxInput.max = String(newBounds.max);
+        maxInput.value = String(newBounds.max);
+        updateDisplay();
+        // Apply current range
+        updateElevationRange();
+      } else {
+        this._callbacks.onElevationRangeChange(null);
+      }
+    });
+
+    // Initialize track fill position
+    this._updateElevationTrackFill();
+
+    return group;
+  }
+
+  /**
+   * Updates the elevation range slider track fill position.
+   */
+  private _updateElevationTrackFill(): void {
+    if (!this._elevationMinInput || !this._elevationMaxInput || !this._elevationTrackFill) return;
+
+    const min = parseFloat(this._elevationMinInput.min);
+    const max = parseFloat(this._elevationMinInput.max);
+    const minVal = parseFloat(this._elevationMinInput.value);
+    const maxVal = parseFloat(this._elevationMaxInput.value);
+
+    const range = max - min;
+    if (range <= 0) return;
+
+    const leftPercent = ((minVal - min) / range) * 100;
+    const rightPercent = ((max - maxVal) / range) * 100;
+
+    this._elevationTrackFill.style.left = `${leftPercent}%`;
+    this._elevationTrackFill.style.right = `${rightPercent}%`;
+  }
+
+  /**
+   * Gets elevation bounds from loaded point clouds.
+   */
+  private _getElevationBounds(): { min: number; max: number } {
+    if (!this._state.lidarState?.pointClouds || this._state.lidarState.pointClouds.length === 0) {
+      return { min: 0, max: 100 };
+    }
+
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+
+    for (const pc of this._state.lidarState.pointClouds) {
+      if (pc.bounds) {
+        minZ = Math.min(minZ, pc.bounds.minZ);
+        maxZ = Math.max(maxZ, pc.bounds.maxZ);
+      }
+    }
+
+    // Round to nice values
+    minZ = Math.floor(minZ);
+    maxZ = Math.ceil(maxZ);
+
+    // Return reasonable defaults if no valid bounds found
+    if (!isFinite(minZ) || !isFinite(maxZ)) {
+      return { min: 0, max: 100 };
+    }
+
+    return { min: minZ, max: maxZ };
+  }
+
+  /**
+   * Builds the classification legend with toggleable visibility.
+   */
+  private _buildClassificationLegend(): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'usgs-lidar-classification-legend';
+    container.style.display = 'none'; // Hidden by default, shown when classification scheme is selected
+    this._classificationLegendContainer = container;
+
+    // Header with Show All / Hide All buttons
+    const header = document.createElement('div');
+    header.className = 'usgs-lidar-classification-header';
+
+    const showAllBtn = document.createElement('button');
+    showAllBtn.type = 'button';
+    showAllBtn.className = 'usgs-lidar-btn-small';
+    showAllBtn.textContent = 'Show All';
+    showAllBtn.addEventListener('click', () => this._callbacks.onClassificationShowAll());
+
+    const hideAllBtn = document.createElement('button');
+    hideAllBtn.type = 'button';
+    hideAllBtn.className = 'usgs-lidar-btn-small';
+    hideAllBtn.textContent = 'Hide All';
+    hideAllBtn.addEventListener('click', () => this._callbacks.onClassificationHideAll());
+
+    header.appendChild(showAllBtn);
+    header.appendChild(hideAllBtn);
+    container.appendChild(header);
+
+    // Legend items list
+    const list = document.createElement('div');
+    list.className = 'usgs-lidar-classification-list';
+    list.id = 'usgs-lidar-classification-list';
+
+    // Build legend items from available classifications
+    this._rebuildClassificationList(list);
+
+    container.appendChild(list);
+    return container;
+  }
+
+  /**
+   * Rebuilds the classification list items.
+   */
+  private _rebuildClassificationList(listContainer: HTMLElement): void {
+    listContainer.innerHTML = '';
+    this._classificationCheckboxes.clear();
+
+    const availableClassifications = this._state.lidarState?.availableClassifications;
+    const hiddenClassifications = this._state.lidarState?.hiddenClassifications || new Set<number>();
+
+    if (!availableClassifications || availableClassifications.size === 0) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'usgs-lidar-classification-empty';
+      placeholder.textContent = 'Loading classifications...';
+      listContainer.appendChild(placeholder);
+      return;
+    }
+
+    // Sort classifications by code
+    const sortedCodes = Array.from(availableClassifications).sort((a, b) => a - b);
+
+    for (const code of sortedCodes) {
+      const item = document.createElement('div');
+      item.className = 'usgs-lidar-classification-item';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `usgs-lidar-class-${code}`;
+      checkbox.checked = !hiddenClassifications.has(code);
+      checkbox.addEventListener('change', () => {
+        this._callbacks.onClassificationToggle(code, checkbox.checked);
+      });
+      this._classificationCheckboxes.set(code, checkbox);
+
+      const swatch = document.createElement('span');
+      swatch.className = 'usgs-lidar-classification-swatch';
+      const color = CLASSIFICATION_COLORS[code] || [128, 128, 128];
+      swatch.style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+
+      const label = document.createElement('label');
+      label.htmlFor = `usgs-lidar-class-${code}`;
+      label.className = 'usgs-lidar-classification-label';
+      label.textContent = getClassificationName(code);
+
+      item.appendChild(checkbox);
+      item.appendChild(swatch);
+      item.appendChild(label);
+      listContainer.appendChild(item);
+    }
+  }
+
+  /**
+   * Updates visibility of the classification legend based on color scheme.
+   */
+  private _updateClassificationLegendVisibility(colorScheme: string): void {
+    if (this._classificationLegendContainer) {
+      this._classificationLegendContainer.style.display =
+        colorScheme === 'classification' ? 'block' : 'none';
+    }
+  }
+
+  /**
+   * Updates the classification legend checkboxes.
+   */
+  updateClassificationLegend(): void {
+    const list = document.getElementById('usgs-lidar-classification-list');
+    if (list) {
+      this._rebuildClassificationList(list);
     }
   }
 }

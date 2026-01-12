@@ -464,3 +464,212 @@
     transform: translateX(-50%) translateY(0);
   }
 }
+
+/* Checkbox rows */
+.usgs-lidar-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.usgs-lidar-checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.usgs-lidar-checkbox-row label {
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+  flex: 1;
+}
+
+.usgs-lidar-checkbox-group {
+  margin-bottom: 12px;
+}
+
+/* Dual range slider row */
+.usgs-lidar-dual-range-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.usgs-lidar-dual-range-row label {
+  width: 70px;
+  font-size: 12px;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.usgs-lidar-dual-range-slider {
+  flex: 1;
+  position: relative;
+  height: 20px;
+}
+
+.usgs-lidar-dual-range-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  transform: translateY(-50%);
+  background: #e9ecef;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.usgs-lidar-dual-range-fill {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  background: #4a90d9;
+  border-radius: 2px;
+  pointer-events: none;
+  left: 0;
+  right: 0;
+}
+
+.usgs-lidar-dual-range-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+}
+
+.usgs-lidar-dual-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #4a90d9;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.usgs-lidar-dual-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #4a90d9;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.usgs-lidar-dual-range-input::-webkit-slider-runnable-track {
+  height: 4px;
+  background: transparent;
+}
+
+.usgs-lidar-dual-range-input::-moz-range-track {
+  height: 4px;
+  background: transparent;
+}
+
+.usgs-lidar-dual-range-value {
+  width: 75px;
+  text-align: right;
+  font-size: 12px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+/* Classification legend */
+.usgs-lidar-classification-legend {
+  margin-bottom: 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.usgs-lidar-classification-header {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.usgs-lidar-btn-small {
+  padding: 4px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  color: #495057;
+  transition: background-color 0.15s;
+}
+
+.usgs-lidar-btn-small:hover {
+  background: #f8f9fa;
+}
+
+.usgs-lidar-classification-list {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.usgs-lidar-classification-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.usgs-lidar-classification-item:hover {
+  background: #f8f9fa;
+}
+
+.usgs-lidar-classification-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.usgs-lidar-classification-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.usgs-lidar-classification-label {
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  flex: 1;
+}
+
+.usgs-lidar-classification-empty {
+  padding: 12px 10px;
+  text-align: center;
+  color: #868e96;
+  font-size: 12px;
+  font-style: italic;
+}
