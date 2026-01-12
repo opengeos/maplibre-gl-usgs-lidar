@@ -71,17 +71,14 @@ export class FootprintLayer {
     };
 
     if (this._map.isStyleLoaded()) {
-      console.log('FootprintLayer: Style already loaded, initializing immediately');
       tryInit();
     } else {
-      console.log('FootprintLayer: Waiting for style.load event');
       this._map.once('style.load', tryInit);
     }
 
     // Fallback: also try on 'load' event if not yet initialized
     this._map.once('load', () => {
       if (!this._layersInitialized) {
-        console.log('FootprintLayer: Initializing on map load event (fallback)');
         tryInit();
       }
     });
@@ -97,7 +94,6 @@ export class FootprintLayer {
 
     // If layers not initialized yet, try to initialize now
     if (!this._layersInitialized && this._map.isStyleLoaded()) {
-      console.log('FootprintLayer: Late initialization in setItems');
       this._initLayers();
       this._setupInteraction();
     }
@@ -245,15 +241,12 @@ export class FootprintLayer {
   }
 
   private _initLayers(): void {
-    console.log('FootprintLayer: Initializing layers');
-
     // Add source if it doesn't exist
     if (!this._map.getSource(this._sourceId)) {
       this._map.addSource(this._sourceId, {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
       });
-      console.log('FootprintLayer: Source added');
     }
 
     // Add fill layer (unselected items) - show all by default
@@ -266,7 +259,6 @@ export class FootprintLayer {
           'fill-color': this._options.fillColor,
         },
       });
-      console.log('FootprintLayer: Fill layer added');
     }
 
     // Add selected fill layer - initially hidden (no features selected)
@@ -280,7 +272,6 @@ export class FootprintLayer {
         },
         filter: ['==', ['get', 'id'], ''],
       });
-      console.log('FootprintLayer: Selected layer added');
     }
 
     // Add outline layer
@@ -294,7 +285,6 @@ export class FootprintLayer {
           'line-width': this._options.outlineWidth,
         },
       });
-      console.log('FootprintLayer: Outline layer added');
     }
 
     this._layersInitialized = true;
@@ -341,11 +331,8 @@ export class FootprintLayer {
   private _updateLayer(): void {
     // Wait for layers to be initialized
     if (!this._layersInitialized) {
-      console.log('FootprintLayer: Layers not initialized yet, skipping update');
       return;
     }
-
-    console.log('FootprintLayer: Updating layer with', this._items.length, 'items');
 
     // Use bbox to create rectangular footprints instead of geometry
     // The STAC geometry can be irregular (clipped to boundaries), but the actual
@@ -377,17 +364,9 @@ export class FootprintLayer {
       features,
     };
 
-    console.log('FootprintLayer: Setting data with', features.length, 'features');
-    if (features.length > 0) {
-      console.log('FootprintLayer: First feature geometry type:', features[0].geometry?.type);
-    }
-
     const source = this._map.getSource(this._sourceId) as GeoJSONSource;
     if (source) {
       source.setData(data);
-      console.log('FootprintLayer: Data set successfully');
-    } else {
-      console.error('FootprintLayer: Source not found!');
     }
 
     // Update filters
@@ -396,7 +375,6 @@ export class FootprintLayer {
 
   private _updateSelectedFilter(): void {
     const selectedArray = Array.from(this._selectedIds);
-    console.log('FootprintLayer: Updating filter, selected:', selectedArray);
 
     // Update fill layer - show items not in selectedArray
     if (this._map.getLayer(this._fillLayerId)) {
