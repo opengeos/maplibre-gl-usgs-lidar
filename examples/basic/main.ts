@@ -8,8 +8,8 @@ import 'maplibre-gl-lidar/style.css';
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  center: [-105.2705, 40.015],
-  zoom: 10,
+  center: [-104.9847, 39.7392],
+  zoom: 14,
   maxPitch: 85,
 });
 
