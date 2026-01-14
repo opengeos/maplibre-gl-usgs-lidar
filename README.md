@@ -1,6 +1,6 @@
 # maplibre-gl-usgs-lidar
 
-A MapLibre GL JS plugin for searching and visualizing USGS 3DEP LiDAR COPC data from Microsoft Planetary Computer.
+A MapLibre GL JS plugin for searching and visualizing USGS 3DEP LiDAR data from Microsoft Planetary Computer (COPC) and AWS Open Data (EPT).
 
 [![npm version](https://img.shields.io/npm/v/maplibre-gl-usgs-lidar.svg)](https://www.npmjs.com/package/maplibre-gl-usgs-lidar)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -8,8 +8,9 @@ A MapLibre GL JS plugin for searching and visualizing USGS 3DEP LiDAR COPC data 
 ## Features
 
 - Search USGS 3DEP LiDAR data by map extent or custom bounding box
+- Supports two data sources: COPC (Planetary Computer) and EPT (AWS Open Data)
 - View search results with item footprints on the map
-- Load and visualize COPC point cloud data
+- Load and visualize COPC and EPT point cloud data
 - Dynamic streaming for efficient handling of large datasets
 - Customizable color schemes (elevation, intensity, classification, RGB)
 - React components and hooks for easy integration
@@ -216,9 +217,12 @@ docker run -p 8080:80 maplibre-gl-usgs-lidar
 | `x.y.z` | Specific version (e.g., `1.0.0`) |
 | `x.y` | Minor version (e.g., `1.0`) |
 
-## Data Source
+## Data Sources
 
-This plugin uses the [USGS 3DEP LiDAR COPC](https://planetarycomputer.microsoft.com/dataset/3dep-lidar-copc) dataset from Microsoft Planetary Computer.
+This plugin supports two data sources for USGS 3DEP LiDAR data:
+
+- **COPC (Cloud Optimized Point Cloud)**: [USGS 3DEP LiDAR COPC](https://planetarycomputer.microsoft.com/dataset/3dep-lidar-copc) from [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/)
+- **EPT (Entwine Point Tiles)**: [USGS LiDAR](https://registry.opendata.aws/usgs-lidar/) from [AWS Open Data](https://aws.amazon.com/opendata/) via [hobuinc/usgs-lidar](https://github.com/hobuinc/usgs-lidar)
 
 ## Dependencies
 

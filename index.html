@@ -39,13 +39,20 @@
       color: #666;
       line-height: 1.4;
     }
+    .info-panel a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+    .info-panel a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div class="info-panel">
     <h3>USGS 3DEP LiDAR Viewer</h3>
-    <p>Click the LiDAR control button in the top-right corner to search for and visualize USGS 3DEP LiDAR data from Planetary Computer.</p>
+    <p>Click the LiDAR control button in the top-right corner to search for and visualize USGS 3DEP LiDAR data. Choose between COPC format from <a href="https://planetarycomputer.microsoft.com/dataset/3dep-lidar-copc" target="_blank">Planetary Computer</a> or EPT format from <a href="https://registry.opendata.aws/usgs-lidar/" target="_blank">AWS Open Data</a>.</p>
   </div>
   <script type="module" src="./examples/basic/main.ts"></script>
 </body>
