@@ -8,12 +8,16 @@ import type {
   UsgsLidarEventHandler,
   UsgsLidarEventData,
   StacItem,
+  EptFeature,
   LoadedItemInfo,
+  UnifiedSearchItem,
+  DataSourceType,
 } from './types';
 import { StacSearcher } from '../stac/StacSearcher';
+import { EptSearcher } from '../ept/EptSearcher';
 import { FootprintLayer } from '../results/FootprintLayer';
 import { PanelBuilder } from '../gui/PanelBuilder';
-import { getItemShortName } from '../utils';
+import { getItemShortName, stacToUnified, eptToUnified } from '../utils';
 
 const DEFAULT_OPTIONS: Required<
   Omit<UsgsLidarControlOptions, 'className' | 'lidarControlOptions'>
@@ -26,6 +30,10 @@ const DEFAULT_OPTIONS: Required<
   maxResults: 50,
   showFootprints: true,
   autoZoomToResults: true,
+  defaultDataSource: 'copc',
+  eptBoundaryUrl:
+    'https://raw.githubusercontent.com/hobuinc/usgs-lidar/master/boundaries/boundaries.topojson',
+  cacheDuration: 3 * 24 * 60 * 60 * 1000, // 3 days
 };
 
 // Drawing layer IDs
@@ -63,6 +71,7 @@ export class UsgsLidarControl implements IControl {
 
   // Core components
   private _stacSearcher: StacSearcher;
+  private _eptSearcher: EptSearcher;
   private _footprintLayer?: FootprintLayer;
   private _lidarControl?: LidarControl;
   private _panelBuilder?: PanelBuilder;
@@ -85,10 +94,15 @@ export class UsgsLidarControl implements IControl {
   constructor(options?: Partial<UsgsLidarControlOptions>) {
     this._options = { ...DEFAULT_OPTIONS, ...options };
     this._stacSearcher = new StacSearcher();
+    this._eptSearcher = new EptSearcher(
+      this._options.eptBoundaryUrl,
+      this._options.cacheDuration
+    );
     this._state = {
       collapsed: this._options.collapsed,
       panelWidth: this._options.panelWidth,
       panelMaxHeight: this._options.panelMaxHeight,
+      dataSource: this._options.defaultDataSource,
       searchMode: 'none',
       isDrawing: false,
       drawnBbox: null,
@@ -405,7 +419,7 @@ export class UsgsLidarControl implements IControl {
    *
    * @returns Promise resolving to search results
    */
-  async searchByExtent(): Promise<StacItem[]> {
+  async searchByExtent(): Promise<UnifiedSearchItem[]> {
     if (!this._map) throw new Error('Control not added to map');
 
     const bounds = this._map.getBounds();
@@ -425,7 +439,7 @@ export class UsgsLidarControl implements IControl {
    * @param bbox - Bounding box [west, south, east, north]
    * @returns Promise resolving to search results
    */
-  async searchByBbox(bbox: [number, number, number, number]): Promise<StacItem[]> {
+  async searchByBbox(bbox: [number, number, number, number]): Promise<UnifiedSearchItem[]> {
     this.setState({
       isSearching: true,
       searchError: null,
@@ -435,13 +449,25 @@ export class UsgsLidarControl implements IControl {
     this._emit('searchstart');
 
     try {
-      const response = await this._stacSearcher.searchByExtent(bbox, this._options.maxResults);
-      const items = response.features;
+      let items: UnifiedSearchItem[];
+      let totalMatched: number;
+
+      if (this._state.dataSource === 'copc') {
+        // Search COPC from Planetary Computer
+        const response = await this._stacSearcher.searchByExtent(bbox, this._options.maxResults);
+        items = response.features.map(stacToUnified);
+        totalMatched = response.numberMatched ?? response.context?.matched ?? items.length;
+      } else {
+        // Search EPT from AWS S3
+        const response = await this._eptSearcher.searchByExtent(bbox, this._options.maxResults);
+        items = response.features.map(eptToUnified);
+        totalMatched = response.numberMatched ?? items.length;
+      }
 
       this.setState({
         isSearching: false,
         searchResults: items,
-        totalMatched: response.numberMatched ?? response.context?.matched ?? items.length,
+        totalMatched,
       });
 
       // Show footprints on map
@@ -463,6 +489,25 @@ export class UsgsLidarControl implements IControl {
       this._emitWithData('searcherror', { error: err });
       throw err;
     }
+  }
+
+  /**
+   * Sets the data source type.
+   *
+   * @param source - Data source type ('copc' or 'ept')
+   */
+  setDataSource(source: DataSourceType): void {
+    if (this._state.dataSource !== source) {
+      this.clearResults();
+      this.setState({ dataSource: source });
+    }
+  }
+
+  /**
+   * Gets the current data source type.
+   */
+  getDataSource(): DataSourceType {
+    return this._state.dataSource;
   }
 
   /**
@@ -564,9 +609,9 @@ export class UsgsLidarControl implements IControl {
   /**
    * Selects an item for visualization.
    *
-   * @param item - The STAC item to select
+   * @param item - The unified search item to select
    */
-  selectItem(item: StacItem): void {
+  selectItem(item: UnifiedSearchItem): void {
     const newSelected = new Set(this._state.selectedItems);
     newSelected.add(item.id);
     this.setState({ selectedItems: newSelected });
@@ -577,9 +622,9 @@ export class UsgsLidarControl implements IControl {
   /**
    * Deselects an item.
    *
-   * @param item - The STAC item to deselect
+   * @param item - The unified search item to deselect
    */
-  deselectItem(item: StacItem): void {
+  deselectItem(item: UnifiedSearchItem): void {
     const newSelected = new Set(this._state.selectedItems);
     newSelected.delete(item.id);
     this.setState({ selectedItems: newSelected });
@@ -590,9 +635,9 @@ export class UsgsLidarControl implements IControl {
   /**
    * Toggles item selection.
    *
-   * @param item - The STAC item to toggle
+   * @param item - The unified search item to toggle
    */
-  toggleItemSelection(item: StacItem): void {
+  toggleItemSelection(item: UnifiedSearchItem): void {
     if (this._state.selectedItems.has(item.id)) {
       this.deselectItem(item);
     } else {
@@ -611,11 +656,11 @@ export class UsgsLidarControl implements IControl {
   // ==================== Loading API ====================
 
   /**
-   * Loads a STAC item's COPC data for visualization.
+   * Loads a unified search item's point cloud data for visualization.
    *
-   * @param item - STAC item to load
+   * @param item - Unified search item to load
    */
-  async loadItem(item: StacItem): Promise<void> {
+  async loadItem(item: UnifiedSearchItem): Promise<void> {
     // Wait for initialization if not ready
     if (!this._initialized) {
       await this._waitForInit();
@@ -633,14 +678,22 @@ export class UsgsLidarControl implements IControl {
     }
 
     try {
-      const url = await this._stacSearcher.getCopcUrl(item);
+      let url: string;
+
+      if (item.sourceType === 'copc') {
+        // Get signed COPC URL from Planetary Computer
+        url = await this._stacSearcher.getCopcUrl(item.originalItem as StacItem);
+      } else {
+        // EPT URL is direct (no signing needed)
+        url = (item.originalItem as EptFeature).properties.url;
+      }
 
       // Track URL to item ID mapping
       this._urlToItemId.set(url, item.id);
 
       const pointCloudInfo = await this._lidarControl.loadPointCloud(url);
 
-      // Create LoadedItemInfo with the STAC item name
+      // Create LoadedItemInfo with the item name
       const info: LoadedItemInfo = {
         ...pointCloudInfo,
         name: getItemShortName(item.id),
@@ -767,9 +820,11 @@ export class UsgsLidarControl implements IControl {
   // ==================== URL/Download API ====================
 
   /**
-   * Gets signed COPC URLs for the selected items.
+   * Gets URLs for the selected items.
+   * For COPC items, returns signed URLs from Planetary Computer.
+   * For EPT items, returns direct S3 URLs.
    *
-   * @returns Promise resolving to array of signed URLs
+   * @returns Promise resolving to array of URLs
    */
   async getSignedUrls(): Promise<string[]> {
     const selectedItems = this._state.searchResults.filter((item) =>
@@ -779,7 +834,12 @@ export class UsgsLidarControl implements IControl {
     const urls: string[] = [];
     for (const item of selectedItems) {
       try {
-        const url = await this._stacSearcher.getCopcUrl(item);
+        let url: string;
+        if (item.sourceType === 'copc') {
+          url = await this._stacSearcher.getCopcUrl(item.originalItem as StacItem);
+        } else {
+          url = (item.originalItem as EptFeature).properties.url;
+        }
         urls.push(url);
       } catch (error) {
         console.error(`Failed to get URL for ${item.id}:`, error);
@@ -1090,6 +1150,7 @@ export class UsgsLidarControl implements IControl {
         onClassificationToggle: (code, visible) => this.setClassificationVisibility(code, visible),
         onClassificationShowAll: () => this.showAllClassifications(),
         onClassificationHideAll: () => this.hideAllClassifications(),
+        onDataSourceChange: (source) => this.setDataSource(source),
       },
       this._state
     );

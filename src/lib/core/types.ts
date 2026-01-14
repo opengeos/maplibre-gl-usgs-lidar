@@ -89,6 +89,62 @@ export interface StacSearchParams {
 }
 
 /**
+ * Data source type for LiDAR data
+ */
+export type DataSourceType = 'copc' | 'ept';
+
+/**
+ * EPT feature from TopoJSON boundaries
+ */
+export interface EptFeature {
+  type: 'Feature';
+  properties: {
+    name: string;
+    count: number;
+    url: string;
+  };
+  geometry: GeoJSON.Geometry;
+  bbox?: [number, number, number, number];
+}
+
+/**
+ * EPT search response
+ */
+export interface EptSearchResponse {
+  type: 'FeatureCollection';
+  features: EptFeature[];
+  numberMatched?: number;
+}
+
+/**
+ * Unified search item that can represent either COPC or EPT data
+ */
+export interface UnifiedSearchItem {
+  id: string;
+  type: 'Feature';
+  geometry: GeoJSON.Geometry;
+  bbox: [number, number, number, number];
+  properties: {
+    name: string;
+    pointCount?: number;
+    datetime?: string | null;
+    url?: string;
+    [key: string]: unknown;
+  };
+  sourceType: DataSourceType;
+  originalItem: StacItem | EptFeature;
+}
+
+/**
+ * Cache entry for storing data with expiration
+ */
+export interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+/**
  * Options for configuring the UsgsLidarControl
  */
 export interface UsgsLidarControlOptions {
@@ -149,6 +205,24 @@ export interface UsgsLidarControlOptions {
    * Options to pass to the internal LidarControl
    */
   lidarControlOptions?: Partial<LidarControlOptions>;
+
+  /**
+   * Default data source type
+   * @default 'copc'
+   */
+  defaultDataSource?: DataSourceType;
+
+  /**
+   * EPT TopoJSON boundary URL
+   * @default 'https://raw.githubusercontent.com/hobuinc/usgs-lidar/master/boundaries/boundaries.topojson'
+   */
+  eptBoundaryUrl?: string;
+
+  /**
+   * Cache duration in milliseconds (for EPT boundaries)
+   * @default 259200000 (3 days)
+   */
+  cacheDuration?: number;
 }
 
 /**
@@ -175,6 +249,9 @@ export interface UsgsLidarState {
   /** Panel max height in pixels */
   panelMaxHeight: number;
 
+  /** Current data source type */
+  dataSource: DataSourceType;
+
   /** Current search mode */
   searchMode: SearchMode;
   /** Whether user is currently drawing a bbox */
@@ -182,8 +259,8 @@ export interface UsgsLidarState {
   /** The drawn bounding box */
   drawnBbox: [number, number, number, number] | null;
 
-  /** Search results */
-  searchResults: StacItem[];
+  /** Search results (unified format) */
+  searchResults: UnifiedSearchItem[];
   /** Selected item IDs */
   selectedItems: Set<string>;
   /** Whether a search is in progress */
@@ -224,7 +301,7 @@ export type UsgsLidarControlEvent =
 export interface UsgsLidarEventData {
   type: UsgsLidarControlEvent;
   state: UsgsLidarState;
-  items?: StacItem[];
+  items?: UnifiedSearchItem[];
   error?: Error;
   pointCloud?: PointCloudInfo;
   /** Item ID for unload events */
@@ -252,7 +329,7 @@ export interface UsgsLidarControlReactProps extends UsgsLidarControlOptions {
   /** Callback fired when the control state changes */
   onStateChange?: (state: UsgsLidarState) => void;
   /** Callback fired when search completes */
-  onSearchComplete?: (items: StacItem[]) => void;
+  onSearchComplete?: (items: UnifiedSearchItem[]) => void;
   /** Callback fired when a point cloud is loaded */
   onItemLoad?: (pointCloud: PointCloudInfo) => void;
   /** Callback fired when an error occurs */

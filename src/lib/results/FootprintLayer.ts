@@ -1,5 +1,5 @@
 import type { Map as MapLibreMap, GeoJSONSource } from 'maplibre-gl';
-import type { StacItem } from '../core/types';
+import type { UnifiedSearchItem } from '../core/types';
 import type { Feature, FeatureCollection } from 'geojson';
 
 /**
@@ -24,7 +24,7 @@ const DEFAULT_OPTIONS: Required<FootprintLayerOptions> = {
 };
 
 /**
- * Manages display of STAC item footprints on the map.
+ * Manages display of LiDAR item footprints on the map.
  * Shows item boundaries with selection highlighting.
  *
  * @example
@@ -42,7 +42,7 @@ export class FootprintLayer {
   private _fillLayerId = 'usgs-lidar-footprints-fill';
   private _outlineLayerId = 'usgs-lidar-footprints-outline';
   private _selectedLayerId = 'usgs-lidar-footprints-selected';
-  private _items: StacItem[] = [];
+  private _items: UnifiedSearchItem[] = [];
   private _selectedIds: Set<string> = new Set();
   private _clickHandler?: (itemId: string) => void;
   private _layersInitialized: boolean = false;
@@ -87,9 +87,9 @@ export class FootprintLayer {
   /**
    * Sets the items to display as footprints.
    *
-   * @param items - STAC items to display
+   * @param items - Unified search items to display
    */
-  setItems(items: StacItem[]): void {
+  setItems(items: UnifiedSearchItem[]): void {
     this._items = items;
 
     // If layers not initialized yet, try to initialize now
@@ -104,7 +104,7 @@ export class FootprintLayer {
   /**
    * Gets the currently displayed items.
    */
-  getItems(): StacItem[] {
+  getItems(): UnifiedSearchItem[] {
     return [...this._items];
   }
 
@@ -144,20 +144,6 @@ export class FootprintLayer {
   }
 
   /**
-   * Extracts 2D bbox from a potentially 3D bbox.
-   * 3D bbox format: [west, south, min_elev, east, north, max_elev]
-   * 2D bbox format: [west, south, east, north]
-   */
-  private _extractBbox2D(bbox: number[]): [number, number, number, number] {
-    if (bbox.length === 6) {
-      // 3D bbox: [west, south, min_elev, east, north, max_elev]
-      return [bbox[0], bbox[1], bbox[3], bbox[4]];
-    }
-    // 2D bbox: [west, south, east, north]
-    return [bbox[0], bbox[1], bbox[2], bbox[3]];
-  }
-
-  /**
    * Zooms the map to fit all footprints.
    *
    * @param padding - Padding in pixels (default: 50)
@@ -172,7 +158,7 @@ export class FootprintLayer {
       maxY = -Infinity;
 
     for (const item of this._items) {
-      const [west, south, east, north] = this._extractBbox2D(item.bbox);
+      const [west, south, east, north] = item.bbox;
       minX = Math.min(minX, west);
       minY = Math.min(minY, south);
       maxX = Math.max(maxX, east);
@@ -201,7 +187,7 @@ export class FootprintLayer {
     const item = this._items.find((i) => i.id === itemId);
     if (!item) return;
 
-    const [west, south, east, north] = this._extractBbox2D(item.bbox);
+    const [west, south, east, north] = item.bbox;
     this._map.fitBounds(
       [
         [west, south],
@@ -334,17 +320,16 @@ export class FootprintLayer {
       return;
     }
 
-    // Use bbox to create rectangular footprints instead of geometry
-    // The STAC geometry can be irregular (clipped to boundaries), but the actual
-    // LiDAR tile extent is rectangular based on the bbox
+    // Use bbox to create rectangular footprints
     const features: Feature[] = this._items.map((item) => {
-      const [west, south, east, north] = this._extractBbox2D(item.bbox);
+      const [west, south, east, north] = item.bbox;
       return {
         type: 'Feature',
         properties: {
           id: item.id,
           datetime: item.properties.datetime,
-          pointCount: item.properties['pc:count'] || item.properties['pointcloud:count'],
+          pointCount: item.properties.pointCount,
+          sourceType: item.sourceType,
         },
         geometry: {
           type: 'Polygon',

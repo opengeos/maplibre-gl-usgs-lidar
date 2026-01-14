@@ -84,9 +84,10 @@
     }
   },
   "dependencies": {
+    "maplibre-gl-components": "^0.3.0",
     "maplibre-gl-layer-control": "^0.8.2",
     "maplibre-gl-lidar": "^0.6.1",
-    "maplibre-gl-components": "^0.3.0"
+    "topojson-client": "^3.1.0"
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
@@ -95,6 +96,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@types/topojson-client": "^3.1.5",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "@vitejs/plugin-react": "^4.3.0",

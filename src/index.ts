@@ -10,6 +10,9 @@ export { UsgsLidarLayerAdapter } from './lib/adapters';
 // STAC exports
 export { StacSearcher } from './lib/stac';
 
+// EPT exports
+export { EptSearcher } from './lib/ept';
+
 // Results exports
 export { FootprintLayer } from './lib/results';
 
@@ -27,6 +30,12 @@ export type {
   StacLink,
   SearchMode,
   LoadedItemInfo,
+  // New types for EPT support
+  DataSourceType,
+  EptFeature,
+  EptSearchResponse,
+  UnifiedSearchItem,
+  CacheEntry,
 } from './lib/core/types';
 
 export type { FootprintLayerOptions } from './lib/results';
@@ -44,4 +53,9 @@ export {
   truncate,
   getItemShortName,
   getBboxFromGeometry,
+  // New converter utilities
+  stacToUnified,
+  eptToUnified,
+  getUnifiedItemName,
+  getUnifiedItemMetadata,
 } from './lib/utils';

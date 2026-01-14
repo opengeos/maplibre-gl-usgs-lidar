@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { UsgsLidarState, StacItem } from '../core/types';
+import type { UsgsLidarState, UnifiedSearchItem, DataSourceType } from '../core/types';
 
 /**
  * Initial state for the USGS LiDAR control
@@ -8,6 +8,7 @@ const createInitialState = (options?: Partial<UsgsLidarState>): UsgsLidarState =
   collapsed: true,
   panelWidth: 380,
   panelMaxHeight: 600,
+  dataSource: 'copc',
   searchMode: 'none',
   isDrawing: false,
   drawnBbox: null,
@@ -75,7 +76,7 @@ export function useUsgsLidarState(initialOptions?: Partial<UsgsLidarState>) {
   /**
    * Sets search results
    */
-  const setSearchResults = useCallback((results: StacItem[], totalMatched?: number) => {
+  const setSearchResults = useCallback((results: UnifiedSearchItem[], totalMatched?: number) => {
     setState((prev) => ({
       ...prev,
       searchResults: results,
@@ -88,7 +89,7 @@ export function useUsgsLidarState(initialOptions?: Partial<UsgsLidarState>) {
   /**
    * Selects an item
    */
-  const selectItem = useCallback((item: StacItem) => {
+  const selectItem = useCallback((item: UnifiedSearchItem) => {
     setState((prev) => {
       const newSelected = new Set(prev.selectedItems);
       newSelected.add(item.id);
@@ -99,7 +100,7 @@ export function useUsgsLidarState(initialOptions?: Partial<UsgsLidarState>) {
   /**
    * Deselects an item
    */
-  const deselectItem = useCallback((item: StacItem) => {
+  const deselectItem = useCallback((item: UnifiedSearchItem) => {
     setState((prev) => {
       const newSelected = new Set(prev.selectedItems);
       newSelected.delete(item.id);
@@ -110,7 +111,7 @@ export function useUsgsLidarState(initialOptions?: Partial<UsgsLidarState>) {
   /**
    * Toggles item selection
    */
-  const toggleItemSelection = useCallback((item: StacItem) => {
+  const toggleItemSelection = useCallback((item: UnifiedSearchItem) => {
     setState((prev) => {
       const newSelected = new Set(prev.selectedItems);
       if (newSelected.has(item.id)) {
@@ -120,6 +121,19 @@ export function useUsgsLidarState(initialOptions?: Partial<UsgsLidarState>) {
       }
       return { ...prev, selectedItems: newSelected };
     });
+  }, []);
+
+  /**
+   * Sets the data source
+   */
+  const setDataSource = useCallback((source: DataSourceType) => {
+    setState((prev) => ({
+      ...prev,
+      dataSource: source,
+      searchResults: [],
+      selectedItems: new Set(),
+      totalMatched: null,
+    }));
   }, []);
 
   /**
@@ -184,6 +198,7 @@ export function useUsgsLidarState(initialOptions?: Partial<UsgsLidarState>) {
     setSearching,
     setSearchError,
     clearResults,
+    setDataSource,
     reset,
   };
 }

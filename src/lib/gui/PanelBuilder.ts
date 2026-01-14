@@ -1,5 +1,5 @@
-import type { StacItem, UsgsLidarState } from '../core/types';
-import { formatPointCount, getItemShortName, formatBbox, getItemMetadata } from '../utils';
+import type { UnifiedSearchItem, UsgsLidarState, DataSourceType } from '../core/types';
+import { formatPointCount, getItemShortName, formatBbox, getUnifiedItemMetadata } from '../utils';
 import { getClassificationName } from 'maplibre-gl-lidar';
 
 /**
@@ -40,8 +40,8 @@ export interface PanelCallbacks {
   onStopDrawing: () => void;
   onSearchByDrawn: () => void;
   onClearDrawn: () => void;
-  onItemSelect: (item: StacItem) => void;
-  onItemLoad: (item: StacItem) => void;
+  onItemSelect: (item: UnifiedSearchItem) => void;
+  onItemLoad: (item: UnifiedSearchItem) => void;
   onLoadSelected: () => void;
   onCopySignedUrls: () => void;
   onDownloadSelected: () => void;
@@ -57,6 +57,7 @@ export interface PanelCallbacks {
   onClassificationToggle: (classificationCode: number, visible: boolean) => void;
   onClassificationShowAll: () => void;
   onClassificationHideAll: () => void;
+  onDataSourceChange: (source: DataSourceType) => void;
 }
 
 /**
@@ -154,6 +155,48 @@ export class PanelBuilder {
     const content = document.createElement('div');
     content.className = 'usgs-lidar-section-content';
 
+    // Data source toggle
+    const sourceRow = document.createElement('div');
+    sourceRow.className = 'usgs-lidar-source-toggle';
+
+    const copcLabel = document.createElement('label');
+    copcLabel.className = 'usgs-lidar-source-option';
+    const copcRadio = document.createElement('input');
+    copcRadio.type = 'radio';
+    copcRadio.name = 'usgs-lidar-source';
+    copcRadio.value = 'copc';
+    copcRadio.checked = this._state.dataSource === 'copc';
+    copcRadio.id = 'usgs-lidar-source-copc';
+    copcLabel.appendChild(copcRadio);
+    copcLabel.appendChild(document.createTextNode(' COPC (Planetary Computer)'));
+
+    const eptLabel = document.createElement('label');
+    eptLabel.className = 'usgs-lidar-source-option';
+    const eptRadio = document.createElement('input');
+    eptRadio.type = 'radio';
+    eptRadio.name = 'usgs-lidar-source';
+    eptRadio.value = 'ept';
+    eptRadio.checked = this._state.dataSource === 'ept';
+    eptRadio.id = 'usgs-lidar-source-ept';
+    eptLabel.appendChild(eptRadio);
+    eptLabel.appendChild(document.createTextNode(' EPT (AWS Open Data)'));
+
+    sourceRow.appendChild(copcLabel);
+    sourceRow.appendChild(eptLabel);
+    content.appendChild(sourceRow);
+
+    // Event listeners for data source toggle
+    copcRadio.addEventListener('change', () => {
+      if (copcRadio.checked) {
+        this._callbacks.onDataSourceChange('copc');
+      }
+    });
+    eptRadio.addEventListener('change', () => {
+      if (eptRadio.checked) {
+        this._callbacks.onDataSourceChange('ept');
+      }
+    });
+
     // Search buttons row
     const buttonsRow = document.createElement('div');
     buttonsRow.className = 'usgs-lidar-button-row';
@@ -226,6 +269,14 @@ export class PanelBuilder {
   }
 
   private _updateSearchSection(): void {
+    // Update data source toggle
+    const copcRadio = document.getElementById('usgs-lidar-source-copc') as HTMLInputElement;
+    const eptRadio = document.getElementById('usgs-lidar-source-ept') as HTMLInputElement;
+    if (copcRadio && eptRadio) {
+      copcRadio.checked = this._state.dataSource === 'copc';
+      eptRadio.checked = this._state.dataSource === 'ept';
+    }
+
     // Update draw button
     const drawBtn = document.getElementById('usgs-lidar-draw-btn');
     if (drawBtn) {
@@ -415,7 +466,7 @@ export class PanelBuilder {
 
       const meta = document.createElement('div');
       meta.className = 'usgs-lidar-result-meta';
-      meta.textContent = getItemMetadata(item);
+      meta.textContent = getUnifiedItemMetadata(item);
       info.appendChild(meta);
 
       itemEl.appendChild(info);
