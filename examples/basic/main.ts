@@ -87,7 +87,7 @@ map.on('load', () => {
   const usgsLidarControl = new UsgsLidarControl({
     title: 'USGS 3DEP LiDAR',
     collapsed: false,
-    maxResults: 50,
+    maxResults: 1000,
     showFootprints: true,
     autoZoomToResults: true,
     lidarControlOptions: {
