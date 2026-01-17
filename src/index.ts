@@ -40,6 +40,9 @@ export type {
 
 export type { FootprintLayerOptions } from './lib/results';
 
+// Re-export colormap types from maplibre-gl-lidar
+export type { ColormapName, ColorRangeConfig } from 'maplibre-gl-lidar';
+
 // Utility exports
 export {
   clamp,
