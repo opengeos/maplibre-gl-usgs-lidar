@@ -702,3 +702,88 @@
 .usgs-lidar-source-option:hover {
   color: #333;
 }
+
+/* Colormap section */
+.usgs-lidar-colormap-section {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+/* Colorbar container with min/max labels */
+.usgs-lidar-colorbar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.usgs-lidar-colorbar-canvas {
+  flex: 1;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.usgs-lidar-colorbar-label {
+  font-size: 11px;
+  color: #666;
+  min-width: 40px;
+}
+
+.usgs-lidar-colorbar-min {
+  text-align: left;
+}
+
+.usgs-lidar-colorbar-max {
+  text-align: right;
+}
+
+/* Color range section */
+.usgs-lidar-color-range-section {
+  margin-top: 10px;
+}
+
+.usgs-lidar-color-range-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.usgs-lidar-color-range-header span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+}
+
+/* Color range mode radio buttons */
+.usgs-lidar-color-range-mode {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.usgs-lidar-radio-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+}
+
+.usgs-lidar-radio-option input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.usgs-lidar-radio-option:hover {
+  color: #333;
+}
+

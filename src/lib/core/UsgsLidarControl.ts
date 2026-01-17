@@ -1,6 +1,6 @@
 import type { IControl, Map as MapLibreMap, MapMouseEvent, GeoJSONSource } from 'maplibre-gl';
 import { LidarControl } from 'maplibre-gl-lidar';
-import type { ColorScheme } from 'maplibre-gl-lidar';
+import type { ColorScheme, ColormapName, ColorRangeConfig } from 'maplibre-gl-lidar';
 import type {
   UsgsLidarControlOptions,
   UsgsLidarState,
@@ -1034,6 +1034,42 @@ export class UsgsLidarControl implements IControl {
     this._lidarControl?.hideAllClassifications();
   }
 
+  /**
+   * Sets the colormap for elevation/intensity coloring.
+   *
+   * @param colormap - Colormap name
+   */
+  setColormap(colormap: ColormapName): void {
+    this._lidarControl?.setColormap(colormap);
+  }
+
+  /**
+   * Gets the current colormap.
+   *
+   * @returns Current colormap name
+   */
+  getColormap(): ColormapName | undefined {
+    return this._lidarControl?.getColormap();
+  }
+
+  /**
+   * Sets the color range configuration.
+   *
+   * @param config - Color range configuration
+   */
+  setColorRange(config: ColorRangeConfig): void {
+    this._lidarControl?.setColorRange(config);
+  }
+
+  /**
+   * Gets the current color range configuration.
+   *
+   * @returns Current color range config
+   */
+  getColorRange(): ColorRangeConfig | undefined {
+    return this._lidarControl?.getColorRange();
+  }
+
   // ==================== Private Methods ====================
 
   private _emit(event: UsgsLidarControlEvent): void {
@@ -1151,6 +1187,8 @@ export class UsgsLidarControl implements IControl {
         onClassificationShowAll: () => this.showAllClassifications(),
         onClassificationHideAll: () => this.hideAllClassifications(),
         onDataSourceChange: (source) => this.setDataSource(source),
+        onColormapChange: (colormap) => this.setColormap(colormap),
+        onColorRangeChange: (config) => this.setColorRange(config),
       },
       this._state
     );

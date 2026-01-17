@@ -1,6 +1,12 @@
 import type { UnifiedSearchItem, UsgsLidarState, DataSourceType } from '../core/types';
 import { formatPointCount, getItemShortName, formatBbox, getUnifiedItemMetadata } from '../utils';
-import { getClassificationName } from 'maplibre-gl-lidar';
+import {
+  getClassificationName,
+  COLORMAP_NAMES,
+  COLORMAP_LABELS,
+  getColormap,
+} from 'maplibre-gl-lidar';
+import type { ColormapName, ColorRangeConfig } from 'maplibre-gl-lidar';
 
 /**
  * ASPRS Standard LiDAR Classification Colors (RGB)
@@ -58,6 +64,8 @@ export interface PanelCallbacks {
   onClassificationShowAll: () => void;
   onClassificationHideAll: () => void;
   onDataSourceChange: (source: DataSourceType) => void;
+  onColormapChange: (colormap: ColormapName) => void;
+  onColorRangeChange: (config: ColorRangeConfig) => void;
 }
 
 /**
@@ -84,6 +92,33 @@ export class PanelBuilder {
   private _elevationTrackFill: HTMLElement | null = null;
   private _classificationLegendContainer: HTMLElement | null = null;
   private _classificationCheckboxes: Map<number, HTMLInputElement> = new Map();
+
+  // Colormap and color range UI elements
+  private _colormapContainer: HTMLElement | null = null;
+  private _colormapSelect: HTMLSelectElement | null = null;
+  private _colorbarCanvas: HTMLCanvasElement | null = null;
+  private _colorbarMinLabel: HTMLElement | null = null;
+  private _colorbarMaxLabel: HTMLElement | null = null;
+  private _colorRangeModePercentile: HTMLInputElement | null = null;
+  private _colorRangeModeAbsolute: HTMLInputElement | null = null;
+  private _percentileLowSlider: HTMLInputElement | null = null;
+  private _percentileHighSlider: HTMLInputElement | null = null;
+  private _absoluteMinSlider: HTMLInputElement | null = null;
+  private _absoluteMaxSlider: HTMLInputElement | null = null;
+  private _percentileRangeValue: HTMLElement | null = null;
+  private _absoluteRangeValue: HTMLElement | null = null;
+  private _percentileTrackFill: HTMLElement | null = null;
+  private _absoluteTrackFill: HTMLElement | null = null;
+  private _percentileSliderContainer: HTMLElement | null = null;
+  private _absoluteSliderContainer: HTMLElement | null = null;
+  private _currentColormap: ColormapName = 'viridis';
+  private _currentColorRangeConfig: ColorRangeConfig = {
+    mode: 'percentile',
+    percentileLow: 2,
+    percentileHigh: 98,
+  };
+  private _dataBounds: { min: number; max: number } = { min: 0, max: 100 };
+  private _computedBounds: { min: number; max: number } | null = null;
 
   constructor(callbacks: PanelCallbacks, state: UsgsLidarState) {
     this._callbacks = callbacks;
@@ -614,16 +649,40 @@ export class PanelBuilder {
       }
     }
 
+    // Sync computed bounds FIRST (actual values from percentile calculation)
+    // This must happen before updating data bounds so slider values use correct computed bounds
+    if (lidarState.computedColorBounds !== undefined) {
+      this._computedBounds = lidarState.computedColorBounds;
+    }
+
     // Sync color scheme dropdown
     const colorSelect = document.getElementById('usgs-lidar-color-select') as HTMLSelectElement;
     if (colorSelect && lidarState.colorScheme !== undefined) {
       // colorScheme can be a string or an object - only sync if it's a simple string type
       const scheme = typeof lidarState.colorScheme === 'string' ? lidarState.colorScheme : null;
-      if (scheme && colorSelect.value !== scheme) {
-        colorSelect.value = scheme;
+      if (scheme) {
+        if (colorSelect.value !== scheme) {
+          colorSelect.value = scheme;
+        }
         this._updateClassificationLegendVisibility(scheme);
+        this._updateColormapVisibility(scheme);
+        // Update data bounds when scheme changes (uses _computedBounds if available)
+        this._updateDataBoundsForScheme(scheme);
       }
     }
+
+    // Sync colormap dropdown
+    if (lidarState.colormap !== undefined) {
+      this.setColormap(lidarState.colormap);
+    }
+
+    // Sync color range config
+    if (lidarState.colorRange !== undefined) {
+      this.setColorRangeConfig(lidarState.colorRange);
+    }
+
+    // Update colorbar labels based on current config
+    this._updateColorbarLabels();
 
     // Sync pickable checkbox
     if (this._pickableCheckbox && lidarState.pickable !== undefined) {
@@ -696,6 +755,8 @@ export class PanelBuilder {
     colorSelect.addEventListener('change', () => {
       this._callbacks.onColorSchemeChange(colorSelect.value);
       this._updateClassificationLegendVisibility(colorSelect.value);
+      this._updateColormapVisibility(colorSelect.value);
+      this._updateDataBoundsForScheme(colorSelect.value);
     });
     colorRow.appendChild(colorSelect);
 
@@ -703,6 +764,9 @@ export class PanelBuilder {
 
     // Classification legend (shown only when classification color scheme is selected)
     content.appendChild(this._buildClassificationLegend());
+
+    // Colormap section (shown only for elevation/intensity color schemes)
+    content.appendChild(this._buildColormapSection());
 
     // Point size slider
     const sizeRow = document.createElement('div');
@@ -1153,6 +1217,762 @@ export class PanelBuilder {
     const list = document.getElementById('usgs-lidar-classification-list');
     if (list) {
       this._rebuildClassificationList(list);
+    }
+  }
+
+  /**
+   * Builds the colormap section with dropdown, colorbar, and color range controls.
+   */
+  private _buildColormapSection(): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'usgs-lidar-colormap-section';
+    container.style.display = 'none'; // Hidden by default
+    this._colormapContainer = container;
+
+    // Colormap dropdown row
+    const colormapRow = document.createElement('div');
+    colormapRow.className = 'usgs-lidar-control-row';
+
+    const colormapLabel = document.createElement('label');
+    colormapLabel.textContent = 'Colormap';
+    colormapRow.appendChild(colormapLabel);
+
+    const colormapSelect = document.createElement('select');
+    colormapSelect.className = 'usgs-lidar-select';
+    colormapSelect.id = 'usgs-lidar-colormap-select';
+
+    // Add colormap options
+    for (const name of COLORMAP_NAMES) {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = COLORMAP_LABELS[name] || name;
+      colormapSelect.appendChild(option);
+    }
+    colormapSelect.value = this._currentColormap;
+    this._colormapSelect = colormapSelect;
+
+    colormapSelect.addEventListener('change', () => {
+      this._currentColormap = colormapSelect.value as ColormapName;
+      this._updateColorbar();
+      this._callbacks.onColormapChange(this._currentColormap);
+    });
+    colormapRow.appendChild(colormapSelect);
+
+    container.appendChild(colormapRow);
+
+    // Colorbar container with min/max labels
+    const colorbarContainer = document.createElement('div');
+    colorbarContainer.className = 'usgs-lidar-colorbar-container';
+
+    // Min label
+    const minLabel = document.createElement('span');
+    minLabel.className = 'usgs-lidar-colorbar-label usgs-lidar-colorbar-min';
+    minLabel.textContent = '0';
+    this._colorbarMinLabel = minLabel;
+    colorbarContainer.appendChild(minLabel);
+
+    // Colorbar canvas
+    const colorbarCanvas = document.createElement('canvas');
+    colorbarCanvas.className = 'usgs-lidar-colorbar-canvas';
+    colorbarCanvas.width = 200;
+    colorbarCanvas.height = 16;
+    this._colorbarCanvas = colorbarCanvas;
+    colorbarContainer.appendChild(colorbarCanvas);
+
+    // Max label
+    const maxLabel = document.createElement('span');
+    maxLabel.className = 'usgs-lidar-colorbar-label usgs-lidar-colorbar-max';
+    maxLabel.textContent = '100';
+    this._colorbarMaxLabel = maxLabel;
+    colorbarContainer.appendChild(maxLabel);
+
+    container.appendChild(colorbarContainer);
+
+    // Color range controls
+    container.appendChild(this._buildColorRangeControls());
+
+    // Initialize colorbar
+    this._updateColorbar();
+
+    return container;
+  }
+
+  /**
+   * Builds the color range controls with mode toggle and sliders.
+   */
+  private _buildColorRangeControls(): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'usgs-lidar-color-range-section';
+
+    // Header with label and reset button
+    const header = document.createElement('div');
+    header.className = 'usgs-lidar-color-range-header';
+
+    const label = document.createElement('span');
+    label.textContent = 'Color Range';
+    header.appendChild(label);
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'usgs-lidar-btn-small';
+    resetBtn.textContent = 'Reset';
+    resetBtn.addEventListener('click', () => this._resetColorRange());
+    header.appendChild(resetBtn);
+
+    container.appendChild(header);
+
+    // Mode toggle (Percentile / Absolute)
+    const modeRow = document.createElement('div');
+    modeRow.className = 'usgs-lidar-color-range-mode';
+
+    const percentileOption = document.createElement('label');
+    percentileOption.className = 'usgs-lidar-radio-option';
+    const percentileRadio = document.createElement('input');
+    percentileRadio.type = 'radio';
+    percentileRadio.name = 'usgs-lidar-color-range-mode';
+    percentileRadio.value = 'percentile';
+    percentileRadio.checked = true;
+    percentileRadio.id = 'usgs-lidar-color-range-percentile';
+    this._colorRangeModePercentile = percentileRadio;
+    percentileOption.appendChild(percentileRadio);
+    percentileOption.appendChild(document.createTextNode(' Percentile'));
+
+    const absoluteOption = document.createElement('label');
+    absoluteOption.className = 'usgs-lidar-radio-option';
+    const absoluteRadio = document.createElement('input');
+    absoluteRadio.type = 'radio';
+    absoluteRadio.name = 'usgs-lidar-color-range-mode';
+    absoluteRadio.value = 'absolute';
+    absoluteRadio.id = 'usgs-lidar-color-range-absolute';
+    this._colorRangeModeAbsolute = absoluteRadio;
+    absoluteOption.appendChild(absoluteRadio);
+    absoluteOption.appendChild(document.createTextNode(' Absolute'));
+
+    modeRow.appendChild(percentileOption);
+    modeRow.appendChild(absoluteOption);
+    container.appendChild(modeRow);
+
+    // Event listeners for mode change
+    percentileRadio.addEventListener('change', () => this._onColorRangeModeChange());
+    absoluteRadio.addEventListener('change', () => this._onColorRangeModeChange());
+
+    // Percentile slider container
+    container.appendChild(this._buildPercentileSliders());
+
+    // Absolute slider container
+    container.appendChild(this._buildAbsoluteSliders());
+
+    return container;
+  }
+
+  /**
+   * Builds the percentile range sliders.
+   */
+  private _buildPercentileSliders(): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'usgs-lidar-dual-range-row';
+    container.id = 'usgs-lidar-percentile-slider-container';
+    this._percentileSliderContainer = container;
+
+    const label = document.createElement('label');
+    label.textContent = 'Range (%)';
+    container.appendChild(label);
+
+    // Dual range slider wrapper
+    const sliderWrapper = document.createElement('div');
+    sliderWrapper.className = 'usgs-lidar-dual-range-slider';
+
+    // Track background
+    const track = document.createElement('div');
+    track.className = 'usgs-lidar-dual-range-track';
+    sliderWrapper.appendChild(track);
+
+    // Track fill
+    const trackFill = document.createElement('div');
+    trackFill.className = 'usgs-lidar-dual-range-fill';
+    this._percentileTrackFill = trackFill;
+    sliderWrapper.appendChild(trackFill);
+
+    // Min slider
+    const minInput = document.createElement('input');
+    minInput.type = 'range';
+    minInput.className = 'usgs-lidar-dual-range-input usgs-lidar-dual-range-min';
+    minInput.min = '0';
+    minInput.max = '100';
+    minInput.step = '1';
+    minInput.value = '2';
+    this._percentileLowSlider = minInput;
+    sliderWrapper.appendChild(minInput);
+
+    // Max slider
+    const maxInput = document.createElement('input');
+    maxInput.type = 'range';
+    maxInput.className = 'usgs-lidar-dual-range-input usgs-lidar-dual-range-max';
+    maxInput.min = '0';
+    maxInput.max = '100';
+    maxInput.step = '1';
+    maxInput.value = '98';
+    this._percentileHighSlider = maxInput;
+    sliderWrapper.appendChild(maxInput);
+
+    container.appendChild(sliderWrapper);
+
+    // Range value display
+    const rangeValue = document.createElement('span');
+    rangeValue.className = 'usgs-lidar-dual-range-value';
+    rangeValue.textContent = '2% - 98%';
+    this._percentileRangeValue = rangeValue;
+    container.appendChild(rangeValue);
+
+    // Event handlers
+    minInput.addEventListener('input', () => this._onPercentileSliderChange());
+    maxInput.addEventListener('input', () => this._onPercentileSliderChange());
+
+    // Initialize track fill
+    this._updatePercentileTrackFill();
+
+    return container;
+  }
+
+  /**
+   * Builds the absolute range sliders.
+   */
+  private _buildAbsoluteSliders(): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'usgs-lidar-dual-range-row';
+    container.id = 'usgs-lidar-absolute-slider-container';
+    container.style.display = 'none'; // Hidden by default (percentile mode is default)
+    this._absoluteSliderContainer = container;
+
+    const label = document.createElement('label');
+    label.textContent = 'Range';
+    container.appendChild(label);
+
+    // Dual range slider wrapper
+    const sliderWrapper = document.createElement('div');
+    sliderWrapper.className = 'usgs-lidar-dual-range-slider';
+
+    // Track background
+    const track = document.createElement('div');
+    track.className = 'usgs-lidar-dual-range-track';
+    sliderWrapper.appendChild(track);
+
+    // Track fill
+    const trackFill = document.createElement('div');
+    trackFill.className = 'usgs-lidar-dual-range-fill';
+    this._absoluteTrackFill = trackFill;
+    sliderWrapper.appendChild(trackFill);
+
+    // Min slider
+    const minInput = document.createElement('input');
+    minInput.type = 'range';
+    minInput.className = 'usgs-lidar-dual-range-input usgs-lidar-dual-range-min';
+    minInput.min = String(this._dataBounds.min);
+    minInput.max = String(this._dataBounds.max);
+    minInput.step = '0.01';
+    minInput.value = String(this._dataBounds.min);
+    this._absoluteMinSlider = minInput;
+    sliderWrapper.appendChild(minInput);
+
+    // Max slider
+    const maxInput = document.createElement('input');
+    maxInput.type = 'range';
+    maxInput.className = 'usgs-lidar-dual-range-input usgs-lidar-dual-range-max';
+    maxInput.min = String(this._dataBounds.min);
+    maxInput.max = String(this._dataBounds.max);
+    maxInput.step = '0.01';
+    maxInput.value = String(this._dataBounds.max);
+    this._absoluteMaxSlider = maxInput;
+    sliderWrapper.appendChild(maxInput);
+
+    container.appendChild(sliderWrapper);
+
+    // Range value display (current selected values)
+    const rangeValue = document.createElement('span');
+    rangeValue.className = 'usgs-lidar-dual-range-value';
+    rangeValue.textContent = `${this._formatValue(this._dataBounds.min)} - ${this._formatValue(this._dataBounds.max)}`;
+    this._absoluteRangeValue = rangeValue;
+    container.appendChild(rangeValue);
+
+    // Event handlers
+    minInput.addEventListener('input', () => this._onAbsoluteSliderChange());
+    maxInput.addEventListener('input', () => this._onAbsoluteSliderChange());
+
+    // Initialize track fill
+    this._updateAbsoluteTrackFill();
+
+    return container;
+  }
+
+  /**
+   * Updates colormap section visibility based on color scheme.
+   */
+  private _updateColormapVisibility(colorScheme: string): void {
+    if (this._colormapContainer) {
+      const showColormap = colorScheme === 'elevation' || colorScheme === 'intensity';
+      this._colormapContainer.style.display = showColormap ? 'block' : 'none';
+    }
+  }
+
+  /**
+   * Updates data bounds based on the current color scheme.
+   */
+  private _updateDataBoundsForScheme(scheme: string): void {
+    let bounds: { min: number; max: number };
+
+    if (scheme === 'elevation') {
+      bounds = this._getElevationBounds();
+    } else if (scheme === 'intensity') {
+      bounds = this._getIntensityBounds();
+    } else {
+      bounds = { min: 0, max: 100 };
+    }
+
+    this._dataBounds = bounds;
+    this._updateAbsoluteSliderBounds(bounds.min, bounds.max);
+    this._updateColorbarLabels();
+  }
+
+  /**
+   * Gets intensity bounds from loaded point clouds.
+   * Intensity values are normalized to 0-1 range during loading in maplibre-gl-lidar.
+   */
+  private _getIntensityBounds(): { min: number; max: number } {
+    // Intensity values are normalized to 0-1 range during loading
+    // This matches the behavior in maplibre-gl-lidar
+    return { min: 0, max: 1 };
+  }
+
+  /**
+   * Updates the absolute slider bounds.
+   * This sets the min/max range of the sliders and initializes values based on computed bounds or percentile.
+   */
+  private _updateAbsoluteSliderBounds(min: number, max: number): void {
+    // Calculate appropriate step based on range
+    const range = max - min;
+    let step = 1;
+    if (range <= 1) {
+      step = 0.01;
+    } else if (range <= 10) {
+      step = 0.1;
+    } else if (range <= 100) {
+      step = 1;
+    } else if (range <= 1000) {
+      step = 10;
+    } else {
+      step = 100;
+    }
+
+    // Use computed bounds if available, otherwise compute from percentile
+    let initialMin: number;
+    let initialMax: number;
+
+    if (this._computedBounds) {
+      initialMin = this._computedBounds.min;
+      initialMax = this._computedBounds.max;
+    } else {
+      initialMin = min + (range * this._currentColorRangeConfig.percentileLow) / 100;
+      initialMax = min + (range * this._currentColorRangeConfig.percentileHigh) / 100;
+    }
+
+    if (this._absoluteMinSlider) {
+      this._absoluteMinSlider.min = String(min);
+      this._absoluteMinSlider.max = String(max);
+      this._absoluteMinSlider.step = String(step);
+      this._absoluteMinSlider.value = String(initialMin);
+    }
+    if (this._absoluteMaxSlider) {
+      this._absoluteMaxSlider.min = String(min);
+      this._absoluteMaxSlider.max = String(max);
+      this._absoluteMaxSlider.step = String(step);
+      this._absoluteMaxSlider.value = String(initialMax);
+    }
+    if (this._absoluteRangeValue) {
+      this._absoluteRangeValue.textContent = `${this._formatValue(initialMin)} - ${this._formatValue(initialMax)}`;
+    }
+
+    this._updateAbsoluteTrackFill();
+
+    // Update config with computed values
+    this._currentColorRangeConfig.absoluteMin = initialMin;
+    this._currentColorRangeConfig.absoluteMax = initialMax;
+  }
+
+  /**
+   * Updates the absolute slider range label based on current slider values.
+   */
+  private _updateAbsoluteRangeLabel(): void {
+    if (!this._absoluteRangeValue) return;
+
+    const minVal = this._currentColorRangeConfig.absoluteMin ?? this._dataBounds.min;
+    const maxVal = this._currentColorRangeConfig.absoluteMax ?? this._dataBounds.max;
+    this._absoluteRangeValue.textContent = `${this._formatValue(minVal)} - ${this._formatValue(maxVal)}`;
+  }
+
+  /**
+   * Updates the colorbar min/max labels based on current config.
+   */
+  private _updateColorbarLabels(): void {
+    let minVal: number;
+    let maxVal: number;
+
+    if (this._currentColorRangeConfig.mode === 'percentile') {
+      // In percentile mode, use computed bounds if available, otherwise approximate
+      if (this._computedBounds) {
+        minVal = this._computedBounds.min;
+        maxVal = this._computedBounds.max;
+      } else {
+        const range = this._dataBounds.max - this._dataBounds.min;
+        minVal = this._dataBounds.min + (range * this._currentColorRangeConfig.percentileLow) / 100;
+        maxVal = this._dataBounds.min + (range * this._currentColorRangeConfig.percentileHigh) / 100;
+      }
+    } else {
+      // In absolute mode, use the slider values
+      minVal = this._currentColorRangeConfig.absoluteMin ?? this._dataBounds.min;
+      maxVal = this._currentColorRangeConfig.absoluteMax ?? this._dataBounds.max;
+    }
+
+    if (this._colorbarMinLabel) {
+      this._colorbarMinLabel.textContent = this._formatValue(minVal);
+    }
+    if (this._colorbarMaxLabel) {
+      this._colorbarMaxLabel.textContent = this._formatValue(maxVal);
+    }
+  }
+
+  /**
+   * Formats a value for display based on the data range (not the value itself).
+   * This matches the maplibre-gl-lidar behavior.
+   */
+  private _formatValue(value: number): string {
+    const range = this._dataBounds.max - this._dataBounds.min;
+    if (range <= 1) {
+      return value.toFixed(2); // For intensity (0-1), show 2 decimal places
+    } else if (range <= 10) {
+      return value.toFixed(1);
+    } else if (range <= 100) {
+      return value.toFixed(1);
+    } else {
+      return value.toFixed(0);
+    }
+  }
+
+  /**
+   * Updates the colorbar canvas with the current colormap gradient.
+   */
+  private _updateColorbar(): void {
+    if (!this._colorbarCanvas) return;
+
+    const ctx = this._colorbarCanvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = this._colorbarCanvas.width;
+    const height = this._colorbarCanvas.height;
+
+    // Get colormap (array of RGB colors)
+    const colorRamp = getColormap(this._currentColormap);
+
+    // Create gradient
+    const gradient = ctx.createLinearGradient(0, 0, width, 0);
+
+    // Add color stops from the color ramp
+    const numColors = colorRamp.length;
+    for (let i = 0; i < numColors; i++) {
+      const t = i / (numColors - 1);
+      const color = colorRamp[i];
+      gradient.addColorStop(t, `rgb(${color[0]}, ${color[1]}, ${color[2]})`);
+    }
+
+    // Draw gradient
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  /**
+   * Handles color range mode change (percentile/absolute toggle).
+   */
+  private _onColorRangeModeChange(): void {
+    const isPercentile = this._colorRangeModePercentile?.checked ?? true;
+
+    // Show/hide appropriate slider container
+    if (this._percentileSliderContainer) {
+      this._percentileSliderContainer.style.display = isPercentile ? 'flex' : 'none';
+    }
+    if (this._absoluteSliderContainer) {
+      this._absoluteSliderContainer.style.display = isPercentile ? 'none' : 'flex';
+    }
+
+    // Sync values when switching modes
+    if (!isPercentile) {
+      // Switching from percentile to absolute
+      let computedMin: number;
+      let computedMax: number;
+
+      // Use actual computed bounds if available (from the library's percentile calculation)
+      if (this._computedBounds) {
+        computedMin = this._computedBounds.min;
+        computedMax = this._computedBounds.max;
+      } else {
+        // Fall back to linear interpolation
+        const range = this._dataBounds.max - this._dataBounds.min;
+        computedMin =
+          this._dataBounds.min + (range * this._currentColorRangeConfig.percentileLow) / 100;
+        computedMax =
+          this._dataBounds.min + (range * this._currentColorRangeConfig.percentileHigh) / 100;
+      }
+
+      // Update absolute slider values
+      if (this._absoluteMinSlider) {
+        this._absoluteMinSlider.value = String(computedMin);
+      }
+      if (this._absoluteMaxSlider) {
+        this._absoluteMaxSlider.value = String(computedMax);
+      }
+      this._updateAbsoluteTrackFill();
+
+      // Update config with computed values
+      this._currentColorRangeConfig.absoluteMin = computedMin;
+      this._currentColorRangeConfig.absoluteMax = computedMax;
+
+      // Update the slider range label
+      this._updateAbsoluteRangeLabel();
+    }
+    // When switching from absolute to percentile, keep the existing percentile values
+    // (don't recompute from absolute - just restore the previous percentile settings)
+
+    // Update config mode
+    this._currentColorRangeConfig.mode = isPercentile ? 'percentile' : 'absolute';
+
+    // Update colorbar labels
+    this._updateColorbarLabels();
+
+    this._emitColorRangeChange();
+  }
+
+  /**
+   * Handles percentile slider input changes.
+   */
+  private _onPercentileSliderChange(): void {
+    if (!this._percentileLowSlider || !this._percentileHighSlider) return;
+
+    let low = parseFloat(this._percentileLowSlider.value);
+    let high = parseFloat(this._percentileHighSlider.value);
+
+    // Ensure min doesn't exceed max
+    if (low > high) {
+      low = high;
+      this._percentileLowSlider.value = String(low);
+    }
+    // Ensure max doesn't go below min
+    if (high < low) {
+      high = low;
+      this._percentileHighSlider.value = String(high);
+    }
+
+    // Update display
+    if (this._percentileRangeValue) {
+      this._percentileRangeValue.textContent = `${Math.round(low)}% - ${Math.round(high)}%`;
+    }
+
+    this._updatePercentileTrackFill();
+
+    // Update config
+    this._currentColorRangeConfig.percentileLow = low;
+    this._currentColorRangeConfig.percentileHigh = high;
+
+    // Update colorbar labels
+    this._updateColorbarLabels();
+
+    this._emitColorRangeChange();
+  }
+
+  /**
+   * Handles absolute slider input changes.
+   */
+  private _onAbsoluteSliderChange(): void {
+    if (!this._absoluteMinSlider || !this._absoluteMaxSlider) return;
+
+    let min = parseFloat(this._absoluteMinSlider.value);
+    let max = parseFloat(this._absoluteMaxSlider.value);
+
+    // Ensure min doesn't exceed max
+    if (min > max) {
+      min = max;
+      this._absoluteMinSlider.value = String(min);
+    }
+    // Ensure max doesn't go below min
+    if (max < min) {
+      max = min;
+      this._absoluteMaxSlider.value = String(max);
+    }
+
+    // Update display
+    if (this._absoluteRangeValue) {
+      this._absoluteRangeValue.textContent = `${this._formatValue(min)} - ${this._formatValue(max)}`;
+    }
+
+    this._updateAbsoluteTrackFill();
+
+    // Update config
+    this._currentColorRangeConfig.absoluteMin = min;
+    this._currentColorRangeConfig.absoluteMax = max;
+
+    // Update colorbar labels
+    this._updateColorbarLabels();
+
+    this._emitColorRangeChange();
+  }
+
+  /**
+   * Updates the percentile slider track fill position.
+   */
+  private _updatePercentileTrackFill(): void {
+    if (!this._percentileLowSlider || !this._percentileHighSlider || !this._percentileTrackFill)
+      return;
+
+    const min = 0;
+    const max = 100;
+    const low = parseFloat(this._percentileLowSlider.value);
+    const high = parseFloat(this._percentileHighSlider.value);
+
+    const leftPercent = ((low - min) / (max - min)) * 100;
+    const rightPercent = ((max - high) / (max - min)) * 100;
+
+    this._percentileTrackFill.style.left = `${leftPercent}%`;
+    this._percentileTrackFill.style.right = `${rightPercent}%`;
+  }
+
+  /**
+   * Updates the absolute slider track fill position.
+   */
+  private _updateAbsoluteTrackFill(): void {
+    if (!this._absoluteMinSlider || !this._absoluteMaxSlider || !this._absoluteTrackFill) return;
+
+    const min = parseFloat(this._absoluteMinSlider.min);
+    const max = parseFloat(this._absoluteMinSlider.max);
+    const lowVal = parseFloat(this._absoluteMinSlider.value);
+    const highVal = parseFloat(this._absoluteMaxSlider.value);
+
+    const range = max - min;
+    if (range <= 0) return;
+
+    const leftPercent = ((lowVal - min) / range) * 100;
+    const rightPercent = ((max - highVal) / range) * 100;
+
+    this._absoluteTrackFill.style.left = `${leftPercent}%`;
+    this._absoluteTrackFill.style.right = `${rightPercent}%`;
+  }
+
+  /**
+   * Emits the current color range configuration.
+   */
+  private _emitColorRangeChange(): void {
+    this._callbacks.onColorRangeChange({ ...this._currentColorRangeConfig });
+  }
+
+  /**
+   * Resets color range to default percentile 2-98%.
+   */
+  private _resetColorRange(): void {
+    // Reset to percentile mode
+    if (this._colorRangeModePercentile) {
+      this._colorRangeModePercentile.checked = true;
+    }
+    if (this._colorRangeModeAbsolute) {
+      this._colorRangeModeAbsolute.checked = false;
+    }
+
+    // Show percentile slider, hide absolute
+    if (this._percentileSliderContainer) {
+      this._percentileSliderContainer.style.display = 'flex';
+    }
+    if (this._absoluteSliderContainer) {
+      this._absoluteSliderContainer.style.display = 'none';
+    }
+
+    // Reset percentile values
+    if (this._percentileLowSlider) {
+      this._percentileLowSlider.value = '2';
+    }
+    if (this._percentileHighSlider) {
+      this._percentileHighSlider.value = '98';
+    }
+    if (this._percentileRangeValue) {
+      this._percentileRangeValue.textContent = '2% - 98%';
+    }
+
+    // Update track fill
+    this._updatePercentileTrackFill();
+
+    // Reset config
+    this._currentColorRangeConfig = {
+      mode: 'percentile',
+      percentileLow: 2,
+      percentileHigh: 98,
+    };
+
+    this._emitColorRangeChange();
+  }
+
+  /**
+   * Sets the colormap dropdown value.
+   *
+   * @param colormap - Colormap name
+   */
+  setColormap(colormap: ColormapName): void {
+    this._currentColormap = colormap;
+    if (this._colormapSelect) {
+      this._colormapSelect.value = colormap;
+    }
+    this._updateColorbar();
+  }
+
+  /**
+   * Sets the color range configuration.
+   *
+   * @param config - Color range config
+   */
+  setColorRangeConfig(config: ColorRangeConfig): void {
+    this._currentColorRangeConfig = { ...config };
+
+    // Update mode toggle
+    if (this._colorRangeModePercentile) {
+      this._colorRangeModePercentile.checked = config.mode === 'percentile';
+    }
+    if (this._colorRangeModeAbsolute) {
+      this._colorRangeModeAbsolute.checked = config.mode === 'absolute';
+    }
+
+    // Show/hide slider containers
+    if (this._percentileSliderContainer) {
+      this._percentileSliderContainer.style.display = config.mode === 'percentile' ? 'flex' : 'none';
+    }
+    if (this._absoluteSliderContainer) {
+      this._absoluteSliderContainer.style.display = config.mode === 'absolute' ? 'flex' : 'none';
+    }
+
+    // Update percentile sliders
+    if (this._percentileLowSlider) {
+      this._percentileLowSlider.value = String(config.percentileLow);
+    }
+    if (this._percentileHighSlider) {
+      this._percentileHighSlider.value = String(config.percentileHigh);
+    }
+    if (this._percentileRangeValue) {
+      this._percentileRangeValue.textContent = `${Math.round(config.percentileLow)}% - ${Math.round(config.percentileHigh)}%`;
+    }
+    this._updatePercentileTrackFill();
+
+    // Update absolute sliders if values are provided
+    if (config.absoluteMin !== undefined && config.absoluteMax !== undefined) {
+      if (this._absoluteMinSlider) {
+        this._absoluteMinSlider.value = String(config.absoluteMin);
+      }
+      if (this._absoluteMaxSlider) {
+        this._absoluteMaxSlider.value = String(config.absoluteMax);
+      }
+      this._updateAbsoluteTrackFill();
+      this._updateAbsoluteRangeLabel();
     }
   }
 }
