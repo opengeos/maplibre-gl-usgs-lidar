@@ -86,7 +86,7 @@
   "dependencies": {
     "maplibre-gl-components": "^0.3.0",
     "maplibre-gl-layer-control": "^0.8.2",
-    "maplibre-gl-lidar": "^0.7.0",
+    "maplibre-gl-lidar": "^0.7.2",
     "topojson-client": "^3.1.0"
   },
   "devDependencies": {
