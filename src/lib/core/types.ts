@@ -208,7 +208,7 @@ export interface UsgsLidarControlOptions {
 
   /**
    * Default data source type
-   * @default 'copc'
+   * @default 'ept'
    */
   defaultDataSource?: DataSourceType;
 
