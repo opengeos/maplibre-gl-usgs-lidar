@@ -61,6 +61,33 @@ export class StacSearcher {
   }
 
   /**
+   * Validates and clamps a bounding box to valid geographic coordinates.
+   * Longitude: -180 to 180, Latitude: -90 to 90
+   * Also handles NaN and Infinity values.
+   *
+   * @param bbox - Bounding box [west, south, east, north]
+   * @returns Validated and clamped bounding box
+   */
+  private _validateBbox(
+    bbox: [number, number, number, number]
+  ): [number, number, number, number] {
+    // Replace NaN/Infinity with valid defaults
+    const safeValue = (val: number, defaultVal: number, min: number, max: number): number => {
+      if (!Number.isFinite(val)) {
+        return defaultVal;
+      }
+      return Math.max(min, Math.min(max, val));
+    };
+
+    return [
+      safeValue(bbox[0], -180, -180, 180), // west
+      safeValue(bbox[1], -90, -90, 90), // south
+      safeValue(bbox[2], 180, -180, 180), // east
+      safeValue(bbox[3], 90, -90, 90), // north
+    ];
+  }
+
+  /**
    * Searches the STAC API for items matching the given parameters.
    *
    * @param params - Search parameters (bbox, datetime, limit)
@@ -69,9 +96,20 @@ export class StacSearcher {
   async search(params: StacSearchParams): Promise<StacSearchResponse> {
     const searchUrl = `${this._stacUrl}/search`;
 
+    // Validate and clamp bbox to valid geographic coordinates to prevent 400 errors
+    const validatedParams = { ...params };
+    if (validatedParams.bbox) {
+      validatedParams.bbox = this._validateBbox(validatedParams.bbox);
+    }
+
+    // Planetary Computer API has a max limit of 1000
+    if (validatedParams.limit !== undefined && validatedParams.limit > 1000) {
+      validatedParams.limit = 1000;
+    }
+
     const body = {
       collections: [this._collection],
-      ...params,
+      ...validatedParams,
     };
 
     const response = await fetch(searchUrl, {
@@ -83,7 +121,15 @@ export class StacSearcher {
     });
 
     if (!response.ok) {
-      throw new Error(`STAC search failed: ${response.status} ${response.statusText}`);
+      // Try to get more detailed error info
+      let errorDetail = '';
+      try {
+        const errorBody = await response.text();
+        errorDetail = ` - ${errorBody}`;
+      } catch {
+        // Ignore if we can't read the error body
+      }
+      throw new Error(`STAC search failed: ${response.status} ${response.statusText}${errorDetail}`);
     }
 
     return response.json();
