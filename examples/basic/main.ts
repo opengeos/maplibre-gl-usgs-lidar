@@ -1,7 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import { UsgsLidarControl, UsgsLidarLayerAdapter } from '../../src/index';
 import { LayerControl } from 'maplibre-gl-layer-control';
-import {Legend} from 'maplibre-gl-components';
+import { Legend } from 'maplibre-gl-components';
 
 import '../../src/index.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -87,7 +87,7 @@ map.on('load', () => {
   const usgsLidarControl = new UsgsLidarControl({
     title: 'USGS 3DEP LiDAR',
     collapsed: false,
-    maxResults: 1000,
+    maxResults: 2500,
     showFootprints: true,
     autoZoomToResults: true,
     lidarControlOptions: {

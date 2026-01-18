@@ -8,7 +8,7 @@ const createInitialState = (options?: Partial<UsgsLidarState>): UsgsLidarState =
   collapsed: true,
   panelWidth: 380,
   panelMaxHeight: 600,
-  dataSource: 'copc',
+  dataSource: 'ept',
   searchMode: 'none',
   isDrawing: false,
   drawnBbox: null,

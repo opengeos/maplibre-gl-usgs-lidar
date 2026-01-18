@@ -30,7 +30,7 @@ const DEFAULT_OPTIONS: Required<
   maxResults: 50,
   showFootprints: true,
   autoZoomToResults: true,
-  defaultDataSource: 'copc',
+  defaultDataSource: 'ept',
   eptBoundaryUrl:
     'https://raw.githubusercontent.com/hobuinc/usgs-lidar/master/boundaries/boundaries.topojson',
   cacheDuration: 3 * 24 * 60 * 60 * 1000, // 3 days
