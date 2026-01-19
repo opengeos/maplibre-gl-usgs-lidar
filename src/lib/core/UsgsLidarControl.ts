@@ -1,6 +1,12 @@
 import type { IControl, Map as MapLibreMap, MapMouseEvent, GeoJSONSource } from 'maplibre-gl';
 import { LidarControl } from 'maplibre-gl-lidar';
-import type { ColorScheme, ColormapName, ColorRangeConfig } from 'maplibre-gl-lidar';
+import type {
+  ColorScheme,
+  ColormapName,
+  ColorRangeConfig,
+  PointCloudFullMetadata,
+  ElevationProfile,
+} from 'maplibre-gl-lidar';
 import type {
   UsgsLidarControlOptions,
   UsgsLidarState,
@@ -1070,6 +1076,111 @@ export class UsgsLidarControl implements IControl {
     return this._lidarControl?.getColorRange();
   }
 
+  // ==================== Metadata API ====================
+
+  /**
+   * Shows the metadata panel for a point cloud.
+   *
+   * @param itemId - Optional item ID. If not provided, uses the active point cloud.
+   */
+  showMetadata(itemId?: string): void {
+    const id = itemId ?? this._getActivePointCloudId();
+    if (id && this._lidarControl) {
+      this._lidarControl.showMetadataPanel(id);
+    }
+  }
+
+  /**
+   * Hides the metadata panel.
+   */
+  hideMetadata(): void {
+    this._lidarControl?.hideMetadataPanel();
+  }
+
+  /**
+   * Gets the full metadata for a point cloud.
+   *
+   * @param itemId - Optional item ID. If not provided, uses the active point cloud.
+   * @returns Full metadata or undefined if not available.
+   */
+  getMetadata(itemId?: string): PointCloudFullMetadata | undefined {
+    return this._lidarControl?.getFullMetadata(itemId);
+  }
+
+  /**
+   * Gets the active point cloud ID from the internal state.
+   *
+   * @returns Active point cloud ID or null.
+   */
+  private _getActivePointCloudId(): string | null {
+    if (!this._lidarControl) return null;
+    const state = this._lidarControl.getState();
+    return state.activePointCloudId ?? (state.pointClouds.length > 0 ? state.pointClouds[0].id : null);
+  }
+
+  // ==================== Cross-Section API ====================
+
+  /**
+   * Enables cross-section drawing mode.
+   * Users can click two points on the map to define a cross-section line.
+   */
+  enableCrossSection(): void {
+    this._lidarControl?.enableCrossSection();
+  }
+
+  /**
+   * Disables cross-section drawing mode.
+   */
+  disableCrossSection(): void {
+    this._lidarControl?.disableCrossSection();
+  }
+
+  /**
+   * Checks if cross-section drawing mode is enabled.
+   *
+   * @returns True if cross-section mode is active.
+   */
+  isCrossSectionEnabled(): boolean {
+    return this._lidarControl?.isCrossSectionEnabled() ?? false;
+  }
+
+  /**
+   * Sets the buffer distance for cross-section extraction.
+   *
+   * @param meters - Buffer distance in meters.
+   */
+  setCrossSectionBufferDistance(meters: number): void {
+    this._lidarControl?.setCrossSectionBufferDistance(meters);
+  }
+
+  /**
+   * Gets the current cross-section elevation profile.
+   *
+   * @returns Elevation profile data or null if no cross-section exists.
+   */
+  getCrossSectionProfile(): ElevationProfile | null {
+    return this._lidarControl?.getCrossSectionProfile() ?? null;
+  }
+
+  /**
+   * Clears the current cross-section line and profile.
+   */
+  clearCrossSection(): void {
+    this._lidarControl?.clearCrossSection();
+  }
+
+  /**
+   * Gets the cross-section panel element from the internal LidarControl.
+   * This can be used to embed the panel in custom UI.
+   *
+   * @returns HTMLElement containing the cross-section panel, or null.
+   */
+  getCrossSectionPanel(): HTMLElement | null {
+    if (!this._lidarControl) return null;
+    const panel = this._lidarControl.getCrossSectionPanel();
+    return panel ? panel.render() : null;
+  }
+
   // ==================== Private Methods ====================
 
   private _emit(event: UsgsLidarControlEvent): void {
@@ -1189,6 +1300,8 @@ export class UsgsLidarControl implements IControl {
         onDataSourceChange: (source) => this.setDataSource(source),
         onColormapChange: (colormap) => this.setColormap(colormap),
         onColorRangeChange: (config) => this.setColorRange(config),
+        onShowMetadata: (itemId) => this.showMetadata(itemId),
+        onCrossSectionPanel: () => this.getCrossSectionPanel(),
       },
       this._state
     );
@@ -1204,13 +1317,23 @@ export class UsgsLidarControl implements IControl {
   private _setupEventListeners(): void {
     // Click outside to close - but not if clicking in the map
     const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
+      const target = e.target as HTMLElement;
       // Don't close if clicking inside the panel, container, or map canvas
       if (
         this._container?.contains(target) ||
         this._panel?.contains(target) ||
         this._mapContainer?.querySelector('.maplibregl-canvas')?.contains(target)
       ) {
+        return;
+      }
+      // Don't close if clicking inside lidar popups (metadata panel, chart popup)
+      const lidarPopup = document.querySelector('.lidar-metadata-backdrop, .lidar-chart-popup-backdrop');
+      if (lidarPopup?.contains(target)) {
+        return;
+      }
+      // Also check if the click target itself is part of a lidar popup (by class)
+      // This handles cases where the popup closes before we can check containment
+      if (target.closest?.('.lidar-metadata-backdrop, .lidar-metadata-panel, .lidar-chart-popup-backdrop, .lidar-chart-popup')) {
         return;
       }
       // Only collapse if panel is expanded and click is truly outside

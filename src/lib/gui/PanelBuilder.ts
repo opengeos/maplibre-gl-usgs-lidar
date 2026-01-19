@@ -66,6 +66,8 @@ export interface PanelCallbacks {
   onDataSourceChange: (source: DataSourceType) => void;
   onColormapChange: (colormap: ColormapName) => void;
   onColorRangeChange: (config: ColorRangeConfig) => void;
+  onShowMetadata?: (itemId: string) => void;
+  onCrossSectionPanel?: () => HTMLElement | null;
 }
 
 /**
@@ -81,6 +83,7 @@ export class PanelBuilder {
   private _resultsSection: HTMLElement | null = null;
   private _loadedSection: HTMLElement | null = null;
   private _vizSection: HTMLElement | null = null;
+  private _crossSectionSection: HTMLElement | null = null;
 
   // New UI element references for point picking, elevation filter, and classification
   private _pickableCheckbox: HTMLInputElement | null = null;
@@ -147,6 +150,12 @@ export class PanelBuilder {
     // Visualization section
     this._vizSection = this._buildVisualizationSection();
     this._container.appendChild(this._vizSection);
+
+    // Cross-section section (embedded from LidarControl)
+    this._crossSectionSection = this._buildCrossSectionSection();
+    if (this._crossSectionSection) {
+      this._container.appendChild(this._crossSectionSection);
+    }
 
     return this._container;
   }
@@ -597,6 +606,16 @@ export class PanelBuilder {
       pointsEl.textContent = formatPointCount(info.pointCount);
       itemEl.appendChild(pointsEl);
 
+      // Info button for showing metadata (use internal point cloud ID, not USGS item ID)
+      if (this._callbacks.onShowMetadata) {
+        const infoBtn = document.createElement('button');
+        infoBtn.className = 'usgs-lidar-btn-icon usgs-lidar-btn-info';
+        infoBtn.title = 'Show metadata';
+        infoBtn.innerHTML = 'ⓘ';
+        infoBtn.addEventListener('click', () => this._callbacks.onShowMetadata!(info.id));
+        itemEl.appendChild(infoBtn);
+      }
+
       const removeBtn = document.createElement('button');
       removeBtn.className = 'usgs-lidar-btn-icon usgs-lidar-btn-remove';
       removeBtn.title = 'Unload this dataset';
@@ -878,6 +897,65 @@ export class PanelBuilder {
     if (section) {
       section.style.display = show ? 'block' : 'none';
     }
+
+    // Show/hide the cross-section section
+    // If showing and the section doesn't exist yet, try to create it now
+    // (LidarControl should be initialized by now)
+    if (show && !this._crossSectionSection && this._container) {
+      this._crossSectionSection = this._buildCrossSectionSection();
+      if (this._crossSectionSection) {
+        this._container.appendChild(this._crossSectionSection);
+      }
+    }
+
+    if (this._crossSectionSection) {
+      this._crossSectionSection.style.display = show ? 'block' : 'none';
+    }
+  }
+
+  /**
+   * Builds the cross-section section that embeds the panel from LidarControl.
+   * This may return null if the LidarControl hasn't been initialized yet.
+   */
+  private _buildCrossSectionSection(): HTMLElement | null {
+    if (!this._callbacks.onCrossSectionPanel) return null;
+
+    const panel = this._callbacks.onCrossSectionPanel();
+    if (!panel) return null;
+
+    const section = document.createElement('div');
+    section.className = 'usgs-lidar-section usgs-lidar-crosssection-section';
+    section.id = 'usgs-lidar-crosssection-section';
+    section.style.display = 'none'; // Hidden until data is loaded
+
+    // Collapsible header
+    const header = document.createElement('div');
+    header.className = 'usgs-lidar-section-header usgs-lidar-section-collapsible';
+    header.innerHTML = '<span class="usgs-lidar-section-toggle">▶</span> Cross-Section';
+    header.style.cursor = 'pointer';
+
+    // Collapsible body
+    const body = document.createElement('div');
+    body.className = 'usgs-lidar-section-body';
+    body.style.display = 'none';
+    body.appendChild(panel);
+
+    // Toggle handler
+    header.addEventListener('click', () => {
+      const toggle = header.querySelector('.usgs-lidar-section-toggle');
+      if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if (toggle) toggle.textContent = '▼';
+      } else {
+        body.style.display = 'none';
+        if (toggle) toggle.textContent = '▶';
+      }
+    });
+
+    section.appendChild(header);
+    section.appendChild(body);
+
+    return section;
   }
 
   /**
