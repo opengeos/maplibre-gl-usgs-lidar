@@ -1,7 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import { UsgsLidarControl, UsgsLidarLayerAdapter } from '../../src/index';
 import { LayerControl } from 'maplibre-gl-layer-control';
-import { Legend } from 'maplibre-gl-components';
+import { Legend, TerrainControl } from 'maplibre-gl-components';
 
 import '../../src/index.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -21,6 +21,9 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
 map.addControl(new maplibregl.FullscreenControl(), 'top-right');
 map.addControl(new maplibregl.ScaleControl(), 'bottom-right');
+
+// Add terrain control
+map.addControl(new TerrainControl(), 'top-right');
 
 // Add USGS LiDAR control when map loads
 map.on('load', () => {
