@@ -36,6 +36,15 @@ export type {
   EptSearchResponse,
   UnifiedSearchItem,
   CacheEntry,
+  // Metadata types (re-exported from maplibre-gl-lidar)
+  PointCloudFullMetadata,
+  DimensionInfo,
+  CopcMetadata,
+  EptExtendedMetadata,
+  // Cross-section types (re-exported from maplibre-gl-lidar)
+  CrossSectionLine,
+  ProfilePoint,
+  ElevationProfile,
 } from './lib/core/types';
 
 export type { FootprintLayerOptions } from './lib/results';

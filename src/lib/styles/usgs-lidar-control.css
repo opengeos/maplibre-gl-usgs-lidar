@@ -787,3 +787,42 @@
   color: #333;
 }
 
+/* Info button */
+.usgs-lidar-btn-info {
+  color: #4a90d9;
+}
+
+.usgs-lidar-btn-info:hover {
+  background: #e7f5ff;
+}
+
+/* Collapsible section header */
+.usgs-lidar-section-collapsible {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.usgs-lidar-section-toggle {
+  font-size: 10px;
+  color: #888;
+  transition: transform 0.15s;
+}
+
+.usgs-lidar-section-body {
+  padding: 0;
+}
+
+/* Cross-section section */
+.usgs-lidar-crosssection-section .usgs-lidar-section-body {
+  padding: 12px 16px;
+}
+
+/* Cross-section panel container - ensure proper styling for embedded panel */
+.usgs-lidar-crosssection-section .lidar-crosssection-panel {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+

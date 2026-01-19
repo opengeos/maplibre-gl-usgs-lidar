@@ -2,6 +2,17 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { LidarControlOptions, LidarState, PointCloudInfo } from 'maplibre-gl-lidar';
 import type { Feature, Polygon } from 'geojson';
 
+// Re-export metadata and cross-section types from maplibre-gl-lidar
+export type {
+  PointCloudFullMetadata,
+  DimensionInfo,
+  CopcMetadata,
+  EptExtendedMetadata,
+  CrossSectionLine,
+  ProfilePoint,
+  ElevationProfile,
+} from 'maplibre-gl-lidar';
+
 /**
  * STAC Link object
  */
