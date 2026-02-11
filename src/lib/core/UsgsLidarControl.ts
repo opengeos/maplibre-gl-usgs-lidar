@@ -137,14 +137,14 @@ export class UsgsLidarControl implements IControl {
     this._mapContainer.appendChild(this._panel);
 
     // Initialize components after map style is ready
-    // Use setTimeout to allow the current execution context to complete,
-    // which fixes a race condition where isStyleLoaded() returns false
-    // even though we're inside a map.on('load') callback
-    setTimeout(() => {
-      if (!this._initialized) {
-        this._initComponents();
-      }
-    }, 0);
+    const initWhenReady = () => {
+      if (!this._initialized) this._initComponents();
+    };
+    if (map.isStyleLoaded()) {
+      initWhenReady();
+    } else {
+      map.once('style.load', initWhenReady);
+    }
 
     this._setupEventListeners();
 
@@ -1411,5 +1411,9 @@ export class UsgsLidarControl implements IControl {
         this._panel.style.right = `${buttonRight}px`;
         break;
     }
+  }
+
+  getPanelElement(): HTMLElement | null {
+    return this._panel ?? null;
   }
 }

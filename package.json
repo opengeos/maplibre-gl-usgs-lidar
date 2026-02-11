@@ -1,6 +1,6 @@
 {
   "name": "maplibre-gl-usgs-lidar",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "A MapLibre GL JS plugin for searching and visualizing USGS 3DEP LiDAR COPC data from Planetary Computer",
   "type": "module",
   "main": "./dist/index.cjs",
