@@ -209,6 +209,10 @@ export class UsgsLidarControl implements IControl {
       });
       this._map.addControl(this._lidarControl, this._options.position);
 
+      // Hide the LidarControl's toggle button since UsgsLidarControl provides its own UI
+      const lidarEl = (this._lidarControl as any)._container as HTMLElement;
+      if (lidarEl) lidarEl.style.display = 'none';
+
       // Listen to lidar control state changes
       this._lidarControl.on('statechange', (event) => {
         this.setState({ lidarState: event.state });
