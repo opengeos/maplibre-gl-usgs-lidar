@@ -7,7 +7,7 @@ import type { UsgsLidarState, UnifiedSearchItem, DataSourceType } from '../core/
 const createInitialState = (options?: Partial<UsgsLidarState>): UsgsLidarState => ({
   collapsed: true,
   panelWidth: 380,
-  panelMaxHeight: 600,
+  maxHeight: 500,
   dataSource: 'ept',
   searchMode: 'none',
   isDrawing: false,

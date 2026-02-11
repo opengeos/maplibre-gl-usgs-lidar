@@ -32,7 +32,7 @@ const DEFAULT_OPTIONS: Required<
   position: 'top-right',
   title: 'USGS 3DEP LiDAR',
   panelWidth: 380,
-  panelMaxHeight: 600,
+  maxHeight: 500,
   maxResults: 50,
   showFootprints: true,
   autoZoomToResults: true,
@@ -107,7 +107,7 @@ export class UsgsLidarControl implements IControl {
     this._state = {
       collapsed: this._options.collapsed,
       panelWidth: this._options.panelWidth,
-      panelMaxHeight: this._options.panelMaxHeight,
+      maxHeight: this._options.maxHeight,
       dataSource: this._options.defaultDataSource,
       searchMode: 'none',
       isDrawing: false,
@@ -1232,7 +1232,7 @@ export class UsgsLidarControl implements IControl {
     const panel = document.createElement('div');
     panel.className = 'usgs-lidar-control-panel';
     panel.style.width = `${this._options.panelWidth}px`;
-    panel.style.maxHeight = `${this._options.panelMaxHeight}px`;
+    panel.style.maxHeight = `${this._options.maxHeight}px`;
 
     // Header
     const header = document.createElement('div');

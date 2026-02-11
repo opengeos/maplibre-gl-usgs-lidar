@@ -187,7 +187,7 @@ export interface UsgsLidarControlOptions {
    * Maximum height of the control panel in pixels
    * @default 600
    */
-  panelMaxHeight?: number;
+  maxHeight?: number;
 
   /**
    * Custom CSS class name
@@ -258,7 +258,7 @@ export interface UsgsLidarState {
   /** Panel width in pixels */
   panelWidth: number;
   /** Panel max height in pixels */
-  panelMaxHeight: number;
+  maxHeight: number;
 
   /** Current data source type */
   dataSource: DataSourceType;
