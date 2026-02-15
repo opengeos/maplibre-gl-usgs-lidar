@@ -82,6 +82,19 @@ export class FootprintLayer {
         tryInit();
       }
     });
+
+    // Handle style changes (e.g., when basemap is switched)
+    // Re-initialize layers after style change to ensure they exist
+    this._map.on('style.load', () => {
+      // Reset flag since layers were removed during style change
+      this._layersInitialized = false;
+      this._initLayers();
+      this._setupInteraction();
+      // Re-render any existing items
+      if (this._items.length > 0) {
+        this._updateLayer();
+      }
+    });
   }
 
   /**
@@ -92,8 +105,15 @@ export class FootprintLayer {
   setItems(items: UnifiedSearchItem[]): void {
     this._items = items;
 
-    // If layers not initialized yet, try to initialize now
-    if (!this._layersInitialized && this._map.isStyleLoaded()) {
+    // Check if style is loaded
+    if (!this._map.isStyleLoaded()) {
+      // Style not loaded yet, items will be rendered when style loads
+      return;
+    }
+
+    // If layers not initialized yet, or source was removed (e.g., style change), re-initialize
+    if (!this._layersInitialized || !this._map.getSource(this._sourceId)) {
+      this._layersInitialized = false;
       this._initLayers();
       this._setupInteraction();
     }
@@ -318,6 +338,13 @@ export class FootprintLayer {
     // Wait for layers to be initialized
     if (!this._layersInitialized) {
       return;
+    }
+
+    // If source was removed (e.g., style change), re-initialize
+    if (!this._map.getSource(this._sourceId)) {
+      this._layersInitialized = false;
+      this._initLayers();
+      this._setupInteraction();
     }
 
     // Use bbox to create rectangular footprints
