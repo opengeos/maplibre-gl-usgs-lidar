@@ -450,6 +450,11 @@ export class UsgsLidarControl implements IControl {
    * @returns Promise resolving to search results
    */
   async searchByBbox(bbox: [number, number, number, number]): Promise<UnifiedSearchItem[]> {
+    // Wait for initialization if not ready (footprint layer needs to be created)
+    if (!this._initialized) {
+      await this._waitForInit();
+    }
+
     this.setState({
       isSearching: true,
       searchError: null,
@@ -525,6 +530,11 @@ export class UsgsLidarControl implements IControl {
    */
   startDrawing(): void {
     if (!this._map) return;
+
+    // Ensure draw layers are initialized
+    if (!this._map.getSource(DRAW_SOURCE_ID)) {
+      this._initDrawLayers();
+    }
 
     this.setState({ searchMode: 'draw', isDrawing: true });
     this._emit('drawstart');
@@ -741,11 +751,41 @@ export class UsgsLidarControl implements IControl {
         return;
       }
 
+      // Try to initialize now if map is ready
+      if (this._map && this._map.isStyleLoaded() && !this._initialized) {
+        this._initComponents();
+        if (this._initialized) {
+          resolve();
+          return;
+        }
+      }
+
+      let attempts = 0;
+      const maxAttempts = 100; // ~1.6 seconds at 60fps
+
       const checkInit = () => {
         if (this._initialized) {
           resolve();
-        } else {
+          return;
+        }
+
+        attempts++;
+
+        // Try to force initialization if map appears ready
+        if (this._map && this._map.isStyleLoaded() && !this._initialized) {
+          this._initComponents();
+          if (this._initialized) {
+            resolve();
+            return;
+          }
+        }
+
+        if (attempts < maxAttempts) {
           requestAnimationFrame(checkInit);
+        } else {
+          // Give up waiting and resolve anyway - search will work but footprints may not show
+          console.warn('UsgsLidarControl: Initialization timeout, proceeding without full initialization');
+          resolve();
         }
       };
       checkInit();
