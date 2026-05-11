@@ -2,6 +2,7 @@ import maplibregl from 'maplibre-gl';
 import { UsgsLidarControl, UsgsLidarLayerAdapter } from '../../src/index';
 import { LayerControl } from 'maplibre-gl-layer-control';
 import { Legend, TerrainControl } from 'maplibre-gl-components';
+import { addShareButton, applyHashState, parseHash } from './urlState';
 
 import '../../src/index.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -115,6 +116,40 @@ map.on('load', () => {
 
   // Add USGS LiDAR control to the map (after layer control)
   map.addControl(usgsLidarControl, 'top-right');
+
+  // Track the most recently loaded dataset id for the share URL
+  let lastLoadedId: string | null = null;
+  usgsLidarControl.on('loadcomplete', (event) => {
+    const loaded = event.state.loadedItems;
+    if (loaded.size === 0) return;
+    // Use the last entry as the most recent load
+    const ids = Array.from(loaded.keys());
+    lastLoadedId = ids[ids.length - 1];
+  });
+  usgsLidarControl.on('unload', (event) => {
+    if (event.state.loadedItems.size === 0) {
+      lastLoadedId = null;
+    } else if (lastLoadedId && !event.state.loadedItems.has(lastLoadedId)) {
+      const ids = Array.from(event.state.loadedItems.keys());
+      lastLoadedId = ids[ids.length - 1];
+    }
+  });
+
+  // Inject the share button into the panel (idempotent)
+  const ensureShareButton = () => addShareButton(usgsLidarControl, map, () => lastLoadedId);
+  ensureShareButton();
+  usgsLidarControl.on('expand', ensureShareButton);
+
+  // Restore state from URL hash, if any
+  const hashState = parseHash(window.location.hash);
+  if (Object.keys(hashState).length > 0) {
+    applyHashState(map, usgsLidarControl, hashState).catch((err) => {
+      console.warn('[share-url] Failed to apply hash state:', err);
+    });
+    if (hashState.id) {
+      usgsLidarControl.expand();
+    }
+  }
 
   // Add a legend with zoom visibility control
   const lidarLegend = new Legend({

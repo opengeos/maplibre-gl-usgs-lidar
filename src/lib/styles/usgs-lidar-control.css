@@ -266,6 +266,10 @@
   border-radius: 6px;
 }
 
+.usgs-lidar-results-list:empty {
+  display: none;
+}
+
 .usgs-lidar-result-item {
   display: flex;
   align-items: center;
