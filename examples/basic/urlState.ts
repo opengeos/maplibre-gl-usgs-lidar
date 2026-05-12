@@ -165,13 +165,16 @@ export async function applyHashState(
   // Camera
   const hasLon = isFiniteNumber(state.lon);
   const hasLat = isFiniteNumber(state.lat);
-  if (hasLon && hasLat) {
-    map.jumpTo({
-      center: [state.lon as number, state.lat as number],
-      zoom: isFiniteNumber(state.zoom) ? state.zoom : map.getZoom(),
-      pitch: isFiniteNumber(state.pitch) ? state.pitch : map.getPitch(),
-      bearing: isFiniteNumber(state.bearing) ? state.bearing : map.getBearing(),
-    });
+  const camera = hasLon && hasLat
+    ? {
+        center: [state.lon as number, state.lat as number] as [number, number],
+        zoom: isFiniteNumber(state.zoom) ? state.zoom : map.getZoom(),
+        pitch: isFiniteNumber(state.pitch) ? state.pitch : map.getPitch(),
+        bearing: isFiniteNumber(state.bearing) ? state.bearing : map.getBearing(),
+      }
+    : null;
+  if (camera) {
+    map.jumpTo(camera);
   }
 
   // Data source
@@ -188,7 +191,20 @@ export async function applyHashState(
     });
 
     try {
-      const results: UnifiedSearchItem[] = await control.searchByExtent();
+      // Use a wide bbox around the restored center so state-level dataset ids
+      // (e.g. "VT_Statewide_1_A23") are reliably included even when the user
+      // zoomed in tightly before sharing. searchByExtent at zoom 13 returns
+      // only fine-grained cells and would miss state-wide ids.
+      const lon = hasLon ? (state.lon as number) : map.getCenter().lng;
+      const lat = hasLat ? (state.lat as number) : map.getCenter().lat;
+      const halfDeg = 1.5; // ~165 km half-width — covers most state-level extents
+      const searchBbox: [number, number, number, number] = [
+        lon - halfDeg,
+        lat - halfDeg,
+        lon + halfDeg,
+        lat + halfDeg,
+      ];
+      const results: UnifiedSearchItem[] = await control.searchByBbox(searchBbox);
       const match = results.find((item) => item.id === state.id);
       if (!match) {
         console.warn(
@@ -199,6 +215,12 @@ export async function applyHashState(
       }
     } catch (err) {
       console.warn('[share-url] Search/load failed while restoring state:', err);
+    }
+
+    // searchByBbox triggers autoZoomToResults, which fits the camera to all
+    // footprints. Re-apply the camera from the hash so the shared view wins.
+    if (camera) {
+      map.jumpTo(camera);
     }
   }
 
