@@ -1628,7 +1628,7 @@ export class PanelBuilder {
   private _updateAbsoluteSliderBounds(min: number, max: number): void {
     // Calculate appropriate step based on range
     const range = max - min;
-    let step = 1;
+    let step: number;
     if (range <= 1) {
       step = 0.01;
     } else if (range <= 10) {
