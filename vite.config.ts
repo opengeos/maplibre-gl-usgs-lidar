@@ -15,6 +15,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      // maplibre-gl-components lazily imports these optional converter deps,
+      // which are not installed. The dev examples never trigger those code
+      // paths, so alias them to an empty stub to satisfy import resolution.
+      shpjs: resolve(__dirname, 'examples/empty-module.ts'),
+      '@duckdb/duckdb-wasm': resolve(__dirname, 'examples/empty-module.ts'),
     },
   },
   build: {
