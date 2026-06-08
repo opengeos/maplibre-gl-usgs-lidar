@@ -85,7 +85,7 @@
   },
   "dependencies": {
     "maplibre-gl-layer-control": ">=0.14.1",
-    "maplibre-gl-lidar": ">=0.14.1",
+    "maplibre-gl-lidar": ">=0.15.0",
     "topojson-client": ">=3.1.0"
   },
   "devDependencies": {
@@ -93,27 +93,27 @@
     "@testing-library/react": ">=16.3.2",
     "@testing-library/user-event": ">=14.6.1",
     "@types/geojson": ">=7946.0.16",
-    "@types/node": ">=25.9.1",
-    "@types/react": ">=19.2.15",
+    "@types/node": ">=25.9.2",
+    "@types/react": ">=19.2.17",
     "@types/react-dom": ">=19.2.3",
     "@types/topojson-client": ">=3.1.5",
-    "@typescript-eslint/eslint-plugin": ">=8.60.0",
-    "@typescript-eslint/parser": ">=8.60.0",
+    "@typescript-eslint/eslint-plugin": ">=8.60.1",
+    "@typescript-eslint/parser": ">=8.60.1",
     "@vitejs/plugin-react": ">=6.0.2",
-    "@vitest/coverage-v8": ">=4.1.7",
-    "@vitest/ui": ">=4.1.7",
+    "@vitest/coverage-v8": ">=4.1.8",
+    "@vitest/ui": ">=4.1.8",
     "eslint": ">=10.4.1",
     "globals": ">=17.6.0",
     "jsdom": ">=29.1.1",
     "maplibre-gl": ">=5.24.0",
-    "maplibre-gl-components": ">=0.17.1",
+    "maplibre-gl-components": ">=0.20.0",
     "prettier": ">=3.8.3",
-    "react": ">=19.2.6",
-    "react-dom": ">=19.2.6",
+    "react": ">=19.2.7",
+    "react-dom": ">=19.2.7",
     "typescript": ">=6.0.3",
-    "vite": ">=8.0.14",
-    "vite-plugin-dts": ">=5.0.1",
-    "vitest": ">=4.1.7"
+    "vite": ">=8.0.16",
+    "vite-plugin-dts": ">=5.0.2",
+    "vitest": ">=4.1.8"
   },
   "overrides": {
     "three": ">=0.184.0"
