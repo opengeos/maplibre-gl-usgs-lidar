@@ -129,8 +129,9 @@ Main control class implementing MapLibre's `IControl` interface.
 | `collapsed` | `boolean` | `true` | Start with panel collapsed |
 | `position` | `string` | `'top-right'` | Control position |
 | `title` | `string` | `'USGS 3DEP LiDAR'` | Panel title |
-| `panelWidth` | `number` | `380` | Panel width in pixels |
-| `panelMaxHeight` | `number` | `600` | Panel max height in pixels |
+| `panelWidth` | `number` | `380` | Initial panel width in pixels (resizable by dragging the bottom corners) |
+| `maxHeight` | `number` | `500` | Fallback maximum panel height; the panel otherwise expands to fill the available vertical space |
+| `theme` | `string` | `'auto'` | Color theme: `'auto'` (follows `prefers-color-scheme`), `'light'`, or `'dark'` |
 | `maxResults` | `number` | `50` | Maximum search results |
 | `showFootprints` | `boolean` | `true` | Show item footprints on map |
 | `autoZoomToResults` | `boolean` | `true` | Auto-zoom to results |

@@ -33,6 +33,7 @@ const DEFAULT_OPTIONS: Required<
   title: 'USGS 3DEP LiDAR',
   panelWidth: 380,
   maxHeight: 500,
+  theme: 'auto',
   maxResults: 50,
   showFootprints: true,
   autoZoomToResults: true,
@@ -91,6 +92,12 @@ export class UsgsLidarControl implements IControl {
 
   // Track URL to item ID mapping for loaded items
   private _urlToItemId: Map<string, string> = new Map();
+
+  // Panel resize state. Once the user drags a resize handle these hold the
+  // explicit pixel size; until then the panel auto-fills the available space.
+  private _userWidth: number | null = null;
+  private _userHeight: number | null = null;
+  private _cleanupResize?: () => void;
 
   /**
    * Creates a new UsgsLidarControl instance.
@@ -1248,6 +1255,8 @@ export class UsgsLidarControl implements IControl {
     container.className = `maplibregl-ctrl maplibregl-ctrl-group usgs-lidar-control${
       this._options.className ? ` ${this._options.className}` : ''
     }`;
+    const themeClass = this._getThemeClass();
+    if (themeClass) container.classList.add(themeClass);
 
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'usgs-lidar-control-toggle';
@@ -1275,8 +1284,11 @@ export class UsgsLidarControl implements IControl {
   private _createPanel(): HTMLElement {
     const panel = document.createElement('div');
     panel.className = 'usgs-lidar-control-panel';
+    const themeClass = this._getThemeClass();
+    if (themeClass) panel.classList.add(themeClass);
     panel.style.width = `${this._options.panelWidth}px`;
-    panel.style.maxHeight = `${this._options.maxHeight}px`;
+    // Height is left to auto so the panel grows with its content; the maximum
+    // is computed from the available vertical space in _updatePanelPosition().
 
     // Header
     const header = document.createElement('div');
@@ -1355,7 +1367,122 @@ export class UsgsLidarControl implements IControl {
     panel.appendChild(header);
     panel.appendChild(content);
 
+    // Resize handles at the bottom-left and bottom-right corners
+    const resizeBl = document.createElement('div');
+    resizeBl.className = 'usgs-lidar-resize-handle usgs-lidar-resize-handle-bl';
+    resizeBl.setAttribute('aria-label', 'Resize panel');
+    resizeBl.addEventListener('pointerdown', (e) => this._startResize(e, 'bl'));
+
+    const resizeBr = document.createElement('div');
+    resizeBr.className = 'usgs-lidar-resize-handle usgs-lidar-resize-handle-br';
+    resizeBr.setAttribute('aria-label', 'Resize panel');
+    resizeBr.addEventListener('pointerdown', (e) => this._startResize(e, 'br'));
+
+    panel.appendChild(resizeBl);
+    panel.appendChild(resizeBr);
+
     return panel;
+  }
+
+  /**
+   * Returns the CSS theme class to apply for the configured theme, or an empty
+   * string when the theme should follow the OS preference (`'auto'`).
+   */
+  private _getThemeClass(): string {
+    switch (this._options.theme) {
+      case 'light':
+        return 'usgs-lidar-theme-light';
+      case 'dark':
+        return 'usgs-lidar-theme-dark';
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Begins an interactive resize of the panel from one of the bottom corner
+   * handles. The corner opposite the grabbed handle is pinned for the duration
+   * of the drag so the panel grows toward the pointer.
+   *
+   * @param e - The originating pointerdown event
+   * @param corner - Which handle was grabbed (`'bl'` or `'br'`)
+   */
+  private _startResize(e: PointerEvent, corner: 'bl' | 'br'): void {
+    if (!this._panel || !this._mapContainer) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const panel = this._panel;
+    const handle = e.currentTarget as HTMLElement;
+    const mapRect = this._mapContainer.getBoundingClientRect();
+    const rect = panel.getBoundingClientRect();
+    const margin = 8;
+
+    // Pin the corner opposite the grabbed handle so resizing feels anchored.
+    // Both handles are on the bottom edge, so the pivot is always a top corner.
+    const pivotTop = rect.top - mapRect.top;
+    panel.style.top = `${pivotTop}px`;
+    panel.style.bottom = '';
+    const maxHeight = mapRect.height - pivotTop - margin;
+
+    let maxWidth: number;
+    if (corner === 'bl') {
+      // Pivot top-right: right edge fixed, drag the left/bottom edges.
+      const pivotRight = mapRect.right - rect.right;
+      panel.style.right = `${pivotRight}px`;
+      panel.style.left = '';
+      maxWidth = rect.right - mapRect.left - margin;
+    } else {
+      // Pivot top-left: left edge fixed, drag the right/bottom edges.
+      const pivotLeft = rect.left - mapRect.left;
+      panel.style.left = `${pivotLeft}px`;
+      panel.style.right = '';
+      maxWidth = mapRect.right - rect.left - margin;
+    }
+
+    const minWidth = 280;
+    const minHeight = 200;
+    const pivotX = corner === 'bl' ? rect.right : rect.left;
+    const pivotY = rect.top;
+
+    panel.classList.add('usgs-lidar-resizing');
+    try {
+      handle.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore environments without pointer capture support
+    }
+
+    const onMove = (ev: PointerEvent) => {
+      const rawWidth = corner === 'bl' ? pivotX - ev.clientX : ev.clientX - pivotX;
+      const rawHeight = ev.clientY - pivotY;
+      const width = Math.max(minWidth, Math.min(rawWidth, maxWidth));
+      const height = Math.max(minHeight, Math.min(rawHeight, maxHeight));
+      panel.style.width = `${width}px`;
+      panel.style.height = `${height}px`;
+      this._userWidth = width;
+      this._userHeight = height;
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      this._cleanupResize?.();
+      try {
+        handle.releasePointerCapture(ev.pointerId);
+      } catch {
+        // Ignore
+      }
+    };
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
+
+    this._cleanupResize = () => {
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointercancel', onUp);
+      panel.classList.remove('usgs-lidar-resizing');
+      this._cleanupResize = undefined;
+    };
   }
 
   private _setupEventListeners(): void {
@@ -1431,29 +1558,57 @@ export class UsgsLidarControl implements IControl {
     const buttonRight = mapRect.right - buttonRect.right;
 
     const panelGap = 5;
+    const margin = 8;
 
     this._panel.style.top = '';
     this._panel.style.bottom = '';
     this._panel.style.left = '';
     this._panel.style.right = '';
 
+    const topOffset = buttonTop + buttonRect.height + panelGap;
+    const bottomOffset = buttonBottom + buttonRect.height + panelGap;
+    const isTop = position === 'top-left' || position === 'top-right';
+
     switch (position) {
       case 'top-left':
-        this._panel.style.top = `${buttonTop + buttonRect.height + panelGap}px`;
+        this._panel.style.top = `${topOffset}px`;
         this._panel.style.left = `${buttonLeft}px`;
         break;
       case 'top-right':
-        this._panel.style.top = `${buttonTop + buttonRect.height + panelGap}px`;
+        this._panel.style.top = `${topOffset}px`;
         this._panel.style.right = `${buttonRight}px`;
         break;
       case 'bottom-left':
-        this._panel.style.bottom = `${buttonBottom + buttonRect.height + panelGap}px`;
+        this._panel.style.bottom = `${bottomOffset}px`;
         this._panel.style.left = `${buttonLeft}px`;
         break;
       case 'bottom-right':
-        this._panel.style.bottom = `${buttonBottom + buttonRect.height + panelGap}px`;
+        this._panel.style.bottom = `${bottomOffset}px`;
         this._panel.style.right = `${buttonRight}px`;
         break;
+    }
+
+    // Constrain the width to the available horizontal space and apply any
+    // user-chosen width from a prior resize.
+    const maxWidth = Math.max(0, mapRect.width - margin * 2);
+    const desiredWidth = this._userWidth ?? this._options.panelWidth;
+    this._panel.style.width = `${Math.min(desiredWidth, maxWidth)}px`;
+
+    // Use all available vertical space: cap the panel height to the gap between
+    // its anchored edge and the opposite side of the map. The content area
+    // scrolls only when it exceeds this height.
+    const availableHeight = Math.max(
+      0,
+      (isTop ? mapRect.height - topOffset : mapRect.height - bottomOffset) - margin
+    );
+    this._panel.style.maxHeight = `${availableHeight}px`;
+
+    if (this._userHeight != null) {
+      // Respect the user's resized height but never overflow the map.
+      this._panel.style.height = `${Math.min(this._userHeight, availableHeight)}px`;
+    } else {
+      // Auto height: grow with content up to the available space.
+      this._panel.style.height = '';
     }
   }
 
