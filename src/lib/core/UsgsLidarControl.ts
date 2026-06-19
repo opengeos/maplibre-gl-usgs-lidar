@@ -83,6 +83,9 @@ export class UsgsLidarControl implements IControl {
   private _lidarControl?: LidarControl;
   private _panelBuilder?: PanelBuilder;
   private _initialized: boolean = false;
+  // Observes the host document's `class` attribute so the `auto` theme can
+  // follow an app-level `.dark` toggle live (not just at mount).
+  private _themeObserver?: MutationObserver;
 
   // Drawing state
   private _drawStartPoint: { lng: number; lat: number } | null = null;
@@ -154,6 +157,7 @@ export class UsgsLidarControl implements IControl {
     }
 
     this._setupEventListeners();
+    this._startThemeSync();
 
     if (!this._state.collapsed) {
       this._panel.classList.add('expanded');
@@ -181,6 +185,10 @@ export class UsgsLidarControl implements IControl {
         // Ignore errors
       }
     }
+
+    // Stop observing host theme changes
+    this._themeObserver?.disconnect();
+    this._themeObserver = undefined;
 
     // Remove DOM elements
     this._panel?.parentNode?.removeChild(this._panel);
@@ -1386,7 +1394,15 @@ export class UsgsLidarControl implements IControl {
 
   /**
    * Returns the CSS theme class to apply for the configured theme, or an empty
-   * string when the theme should follow the OS preference (`'auto'`).
+   * string when the theme should fall back to the OS preference.
+   *
+   * In `'auto'` mode the control follows a host application's light/dark toggle
+   * when one is detectable as a `.dark` class on an ancestor of the map (the
+   * convention used by Tailwind, GeoLibre, etc.): if such an ancestor exists the
+   * dark theme is forced, otherwise an empty string is returned so the
+   * stylesheet's `prefers-color-scheme` media query decides. This keeps the
+   * panel matching the host instead of rendering light in a dark app on a
+   * light OS.
    */
   private _getThemeClass(): string {
     switch (this._options.theme) {
@@ -1395,8 +1411,48 @@ export class UsgsLidarControl implements IControl {
       case 'dark':
         return 'usgs-lidar-theme-dark';
       default:
-        return '';
+        return this._hasDarkAncestor() ? 'usgs-lidar-theme-dark' : '';
     }
+  }
+
+  /** Whether the map (or document) sits inside a `.dark` host theme context. */
+  private _hasDarkAncestor(): boolean {
+    if (typeof document === 'undefined') return false;
+    if (this._mapContainer?.closest('.dark')) return true;
+    return document.documentElement.classList.contains('dark');
+  }
+
+  /**
+   * Re-apply the resolved theme class to the control and panel. Used by the
+   * `auto`-mode observer so a live host theme toggle updates the panel without
+   * recreating the control.
+   */
+  private _applyTheme(): void {
+    const themeClass = this._getThemeClass();
+    for (const el of [this._container, this._panel]) {
+      if (!el) continue;
+      el.classList.remove('usgs-lidar-theme-light', 'usgs-lidar-theme-dark');
+      if (themeClass) el.classList.add(themeClass);
+    }
+  }
+
+  /**
+   * In `auto` mode, watch the document element's `class` attribute so the panel
+   * tracks an app-level `.dark` toggle after mount. No-op for explicit themes.
+   */
+  private _startThemeSync(): void {
+    if (
+      this._options.theme !== 'auto' ||
+      this._themeObserver ||
+      typeof MutationObserver === 'undefined' ||
+      typeof document === 'undefined'
+    ) {
+      return;
+    }
+    this._themeObserver = new MutationObserver(() => this._applyTheme());
+    this._themeObserver.observe(document.documentElement, {
+      attributeFilter: ['class'],
+    });
   }
 
   /**
