@@ -1,8 +1,119 @@
 /* USGS LiDAR Control Styles */
 
-/* Control button */
-.usgs-lidar-control {
-  background: #fff;
+/* ==========================================================================
+   Theme variables
+
+   Colors are defined as CSS custom properties so the control adapts to light
+   and dark themes. The defaults below are the light theme. A dark theme is
+   applied automatically via prefers-color-scheme, or explicitly by adding the
+   `usgs-lidar-theme-dark` / `usgs-lidar-theme-light` class to the control and
+   panel elements (driven by the `theme` option).
+   ========================================================================== */
+.usgs-lidar-control,
+.usgs-lidar-control-panel {
+  --ul-surface: #ffffff;
+  --ul-surface-2: #f8f9fa;
+  --ul-border: #e9ecef;
+  --ul-border-2: #dee2e6;
+  --ul-border-subtle: #f1f3f5;
+  --ul-text: #333333;
+  --ul-text-2: #555555;
+  --ul-text-3: #666666;
+  --ul-text-muted: #868e96;
+  --ul-accent: #4a90d9;
+  --ul-accent-hover: #3a7fc8;
+  --ul-info-bg: #e7f5ff;
+  --ul-info-text: #1864ab;
+  --ul-danger: #dc3545;
+  --ul-danger-hover: #c82333;
+  --ul-danger-bg: #fff5f5;
+  --ul-secondary-bg: #e9ecef;
+  --ul-secondary-hover: #dee2e6;
+  --ul-secondary-text: #495057;
+  --ul-success-bg: #d3f9d8;
+  --ul-success-text: #2b8a3e;
+  --ul-track: #e9ecef;
+  --ul-icon: #333333;
+  --ul-overlay-hover: rgba(0, 0, 0, 0.05);
+  --ul-overlay-hover-strong: rgba(0, 0, 0, 0.08);
+  --ul-swatch-border: rgba(0, 0, 0, 0.1);
+  --ul-shadow: rgba(0, 0, 0, 0.15);
+  --ul-shadow-strong: rgba(0, 0, 0, 0.2);
+}
+
+/* Dark theme via OS preference (unless explicitly forced to light) */
+@media (prefers-color-scheme: dark) {
+  .usgs-lidar-control:not(.usgs-lidar-theme-light),
+  .usgs-lidar-control-panel:not(.usgs-lidar-theme-light) {
+    --ul-surface: #1f2329;
+    --ul-surface-2: #2a2f37;
+    --ul-border: #3a4048;
+    --ul-border-2: #454c56;
+    --ul-border-subtle: #2f343c;
+    --ul-text: #e6e8eb;
+    --ul-text-2: #c2c7cf;
+    --ul-text-3: #aab0b8;
+    --ul-text-muted: #8a9099;
+    --ul-accent: #5b9bd5;
+    --ul-accent-hover: #6faae0;
+    --ul-info-bg: #1a2733;
+    --ul-info-text: #9ec9f0;
+    --ul-danger: #f06a73;
+    --ul-danger-hover: #ff8088;
+    --ul-danger-bg: #3a2326;
+    --ul-secondary-bg: #353b44;
+    --ul-secondary-hover: #404750;
+    --ul-secondary-text: #c2c7cf;
+    --ul-success-bg: #1e3a26;
+    --ul-success-text: #6cd98a;
+    --ul-track: #3a4048;
+    --ul-icon: #e6e8eb;
+    --ul-overlay-hover: rgba(255, 255, 255, 0.08);
+    --ul-overlay-hover-strong: rgba(255, 255, 255, 0.12);
+    --ul-swatch-border: rgba(255, 255, 255, 0.15);
+    --ul-shadow: rgba(0, 0, 0, 0.5);
+    --ul-shadow-strong: rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Dark theme forced explicitly */
+.usgs-lidar-control.usgs-lidar-theme-dark,
+.usgs-lidar-control-panel.usgs-lidar-theme-dark {
+  --ul-surface: #1f2329;
+  --ul-surface-2: #2a2f37;
+  --ul-border: #3a4048;
+  --ul-border-2: #454c56;
+  --ul-border-subtle: #2f343c;
+  --ul-text: #e6e8eb;
+  --ul-text-2: #c2c7cf;
+  --ul-text-3: #aab0b8;
+  --ul-text-muted: #8a9099;
+  --ul-accent: #5b9bd5;
+  --ul-accent-hover: #6faae0;
+  --ul-info-bg: #1a2733;
+  --ul-info-text: #9ec9f0;
+  --ul-danger: #f06a73;
+  --ul-danger-hover: #ff8088;
+  --ul-danger-bg: #3a2326;
+  --ul-secondary-bg: #353b44;
+  --ul-secondary-hover: #404750;
+  --ul-secondary-text: #c2c7cf;
+  --ul-success-bg: #1e3a26;
+  --ul-success-text: #6cd98a;
+  --ul-track: #3a4048;
+  --ul-icon: #e6e8eb;
+  --ul-overlay-hover: rgba(255, 255, 255, 0.08);
+  --ul-overlay-hover-strong: rgba(255, 255, 255, 0.12);
+  --ul-swatch-border: rgba(255, 255, 255, 0.15);
+  --ul-shadow: rgba(0, 0, 0, 0.5);
+  --ul-shadow-strong: rgba(0, 0, 0, 0.6);
+}
+
+/* Control button.
+   The compound selector raises specificity above MapLibre's own
+   `.maplibregl-ctrl-group { background: #fff }` so the dark surface wins. */
+.maplibregl-ctrl-group.usgs-lidar-control {
+  background: var(--ul-surface);
   border-radius: 4px;
 }
 
@@ -19,7 +130,7 @@
 }
 
 .usgs-lidar-control-toggle:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--ul-overlay-hover);
 }
 
 .usgs-lidar-control-icon {
@@ -31,15 +142,16 @@
 .usgs-lidar-control-icon svg {
   width: 22px;
   height: 22px;
-  stroke: #333;
+  stroke: var(--ul-icon);
 }
 
 /* Panel */
 .usgs-lidar-control-panel {
   position: absolute;
-  background: #fff;
+  background: var(--ul-surface);
+  color: var(--ul-text);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px var(--ul-shadow);
   display: none;
   flex-direction: column;
   overflow: hidden;
@@ -58,13 +170,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--ul-surface-2);
+  border-bottom: 1px solid var(--ul-border);
+  flex-shrink: 0;
 }
 
 .usgs-lidar-control-title {
   font-weight: 600;
-  color: #333;
+  color: var(--ul-text);
   font-size: 14px;
 }
 
@@ -76,7 +189,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 20px;
-  color: #666;
+  color: var(--ul-text-3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,20 +197,22 @@
 }
 
 .usgs-lidar-control-close:hover {
-  background-color: rgba(0, 0, 0, 0.08);
-  color: #333;
+  background-color: var(--ul-overlay-hover-strong);
+  color: var(--ul-text);
 }
 
 /* Panel content */
 .usgs-lidar-panel-content {
   padding: 0;
   overflow-y: auto;
-  flex: 1;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* Sections */
 .usgs-lidar-section {
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--ul-border);
 }
 
 .usgs-lidar-section:last-child {
@@ -107,16 +222,16 @@
 .usgs-lidar-section-header {
   padding: 10px 16px;
   font-weight: 600;
-  color: #555;
+  color: var(--ul-text-2);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: #f8f9fa;
+  background: var(--ul-surface-2);
 }
 
 .usgs-lidar-section-header span {
   font-weight: 400;
-  color: #888;
+  color: var(--ul-text-muted);
   margin-left: 4px;
 }
 
@@ -152,30 +267,30 @@
 }
 
 .usgs-lidar-btn-primary {
-  background: #4a90d9;
-  color: white;
+  background: var(--ul-accent);
+  color: #ffffff;
 }
 
 .usgs-lidar-btn-primary:hover:not(:disabled) {
-  background: #3a7fc8;
+  background: var(--ul-accent-hover);
 }
 
 .usgs-lidar-btn-secondary {
-  background: #e9ecef;
-  color: #495057;
+  background: var(--ul-secondary-bg);
+  color: var(--ul-secondary-text);
 }
 
 .usgs-lidar-btn-secondary:hover:not(:disabled) {
-  background: #dee2e6;
+  background: var(--ul-secondary-hover);
 }
 
 .usgs-lidar-btn-danger {
-  background: #dc3545;
-  color: white;
+  background: var(--ul-danger);
+  color: #ffffff;
 }
 
 .usgs-lidar-btn-danger:hover:not(:disabled) {
-  background: #c82333;
+  background: var(--ul-danger-hover);
 }
 
 .usgs-lidar-btn-full {
@@ -187,38 +302,38 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--ul-border-2);
   border-radius: 4px;
-  background: #fff;
+  background: var(--ul-surface);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: #495057;
+  color: var(--ul-secondary-text);
   transition: background-color 0.15s;
   flex-shrink: 0;
 }
 
 .usgs-lidar-btn-icon:hover {
-  background: #f8f9fa;
+  background: var(--ul-surface-2);
 }
 
 .usgs-lidar-btn-remove {
-  color: #dc3545;
+  color: var(--ul-danger);
 }
 
 .usgs-lidar-btn-remove:hover {
-  background: #fff5f5;
+  background: var(--ul-danger-bg);
 }
 
 /* Bbox info */
 .usgs-lidar-bbox-info {
   padding: 8px 10px;
-  background: #e7f5ff;
+  background: var(--ul-info-bg);
   border-radius: 4px;
   font-size: 12px;
-  color: #1864ab;
+  color: var(--ul-info-text);
   margin-bottom: 8px;
   word-break: break-all;
 }
@@ -229,15 +344,15 @@
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  color: #666;
+  color: var(--ul-text-3);
   font-size: 13px;
 }
 
 .usgs-lidar-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid #e9ecef;
-  border-top-color: #4a90d9;
+  border: 2px solid var(--ul-border);
+  border-top-color: var(--ul-accent);
   border-radius: 50%;
   animation: usgs-lidar-spin 0.8s linear infinite;
 }
@@ -251,9 +366,9 @@
 /* Error */
 .usgs-lidar-error {
   padding: 8px 10px;
-  background: #fff5f5;
+  background: var(--ul-danger-bg);
   border-radius: 4px;
-  color: #c92a2a;
+  color: var(--ul-danger);
   font-size: 12px;
 }
 
@@ -262,7 +377,7 @@
   max-height: 200px;
   overflow-y: auto;
   margin-bottom: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--ul-border);
   border-radius: 6px;
 }
 
@@ -275,7 +390,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-bottom: 1px solid #f1f3f5;
+  border-bottom: 1px solid var(--ul-border-subtle);
   transition: background-color 0.15s;
 }
 
@@ -284,11 +399,11 @@
 }
 
 .usgs-lidar-result-item:hover {
-  background: #f8f9fa;
+  background: var(--ul-surface-2);
 }
 
 .usgs-lidar-result-item.selected {
-  background: #e7f5ff;
+  background: var(--ul-info-bg);
 }
 
 .usgs-lidar-result-item.loaded {
@@ -310,7 +425,7 @@
 .usgs-lidar-result-name {
   font-size: 12px;
   font-weight: 500;
-  color: #333;
+  color: var(--ul-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -318,14 +433,14 @@
 
 .usgs-lidar-result-meta {
   font-size: 11px;
-  color: #868e96;
+  color: var(--ul-text-muted);
 }
 
 .usgs-lidar-loaded-badge {
   font-size: 10px;
   padding: 2px 6px;
-  background: #d3f9d8;
-  color: #2b8a3e;
+  background: var(--ul-success-bg);
+  color: var(--ul-success-text);
   border-radius: 4px;
   flex-shrink: 0;
 }
@@ -340,7 +455,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  border-bottom: 1px solid #f1f3f5;
+  border-bottom: 1px solid var(--ul-border-subtle);
 }
 
 .usgs-lidar-loaded-item:last-child {
@@ -350,7 +465,7 @@
 .usgs-lidar-loaded-name {
   flex: 1;
   font-size: 12px;
-  color: #333;
+  color: var(--ul-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -358,7 +473,7 @@
 
 .usgs-lidar-loaded-points {
   font-size: 11px;
-  color: #868e96;
+  color: var(--ul-text-muted);
   flex-shrink: 0;
 }
 
@@ -377,23 +492,24 @@
 .usgs-lidar-control-row label {
   width: 70px;
   font-size: 12px;
-  color: #555;
+  color: var(--ul-text-2);
   flex-shrink: 0;
 }
 
 .usgs-lidar-select {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--ul-border-2);
   border-radius: 4px;
   font-size: 12px;
-  background: #fff;
+  background: var(--ul-surface);
+  color: var(--ul-text);
   cursor: pointer;
 }
 
 .usgs-lidar-select:focus {
   outline: none;
-  border-color: #4a90d9;
+  border-color: var(--ul-accent);
 }
 
 .usgs-lidar-slider {
@@ -401,7 +517,7 @@
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
-  background: #e9ecef;
+  background: var(--ul-track);
   border-radius: 2px;
   outline: none;
 }
@@ -411,7 +527,7 @@
   appearance: none;
   width: 14px;
   height: 14px;
-  background: #4a90d9;
+  background: var(--ul-accent);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -419,7 +535,7 @@
 .usgs-lidar-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  background: #4a90d9;
+  background: var(--ul-accent);
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -429,7 +545,7 @@
   width: 30px;
   text-align: right;
   font-size: 12px;
-  color: #666;
+  color: var(--ul-text-3);
   flex-shrink: 0;
 }
 
@@ -444,18 +560,18 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 16px;
-  background: #2b8a3e;
-  color: white;
+  background: var(--ul-success-text);
+  color: #ffffff;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 10px var(--ul-shadow-strong);
   z-index: 10;
   animation: usgs-lidar-notification-in 0.2s ease-out;
 }
 
 .usgs-lidar-notification.error {
-  background: #c92a2a;
+  background: var(--ul-danger);
 }
 
 @keyframes usgs-lidar-notification-in {
@@ -487,7 +603,7 @@
 
 .usgs-lidar-checkbox-row label {
   font-size: 12px;
-  color: #555;
+  color: var(--ul-text-2);
   cursor: pointer;
   flex: 1;
 }
@@ -508,7 +624,7 @@
 .usgs-lidar-dual-range-row label {
   width: 70px;
   font-size: 12px;
-  color: #555;
+  color: var(--ul-text-2);
   flex-shrink: 0;
 }
 
@@ -525,7 +641,7 @@
   right: 0;
   height: 4px;
   transform: translateY(-50%);
-  background: #e9ecef;
+  background: var(--ul-track);
   border-radius: 2px;
   pointer-events: none;
 }
@@ -535,7 +651,7 @@
   top: 50%;
   height: 4px;
   transform: translateY(-50%);
-  background: #4a90d9;
+  background: var(--ul-accent);
   border-radius: 2px;
   pointer-events: none;
   left: 0;
@@ -561,23 +677,23 @@
   appearance: none;
   width: 16px;
   height: 16px;
-  background: #4a90d9;
+  background: var(--ul-accent);
   border-radius: 50%;
   cursor: pointer;
   pointer-events: auto;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--ul-surface);
+  box-shadow: 0 1px 3px var(--ul-shadow-strong);
 }
 
 .usgs-lidar-dual-range-input::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  background: #4a90d9;
+  background: var(--ul-accent);
   border-radius: 50%;
   cursor: pointer;
   pointer-events: auto;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--ul-surface);
+  box-shadow: 0 1px 3px var(--ul-shadow-strong);
 }
 
 .usgs-lidar-dual-range-input::-webkit-slider-runnable-track {
@@ -594,14 +710,14 @@
   width: 75px;
   text-align: right;
   font-size: 12px;
-  color: #666;
+  color: var(--ul-text-3);
   flex-shrink: 0;
 }
 
 /* Classification legend */
 .usgs-lidar-classification-legend {
   margin-bottom: 12px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--ul-border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -610,23 +726,23 @@
   display: flex;
   gap: 6px;
   padding: 8px 10px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--ul-surface-2);
+  border-bottom: 1px solid var(--ul-border);
 }
 
 .usgs-lidar-btn-small {
   padding: 4px 8px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--ul-border-2);
   border-radius: 4px;
-  background: #fff;
+  background: var(--ul-surface);
   cursor: pointer;
   font-size: 11px;
-  color: #495057;
+  color: var(--ul-secondary-text);
   transition: background-color 0.15s;
 }
 
 .usgs-lidar-btn-small:hover {
-  background: #f8f9fa;
+  background: var(--ul-surface-2);
 }
 
 .usgs-lidar-classification-list {
@@ -645,7 +761,7 @@
 }
 
 .usgs-lidar-classification-item:hover {
-  background: #f8f9fa;
+  background: var(--ul-surface-2);
 }
 
 .usgs-lidar-classification-item input[type="checkbox"] {
@@ -660,12 +776,12 @@
   height: 16px;
   border-radius: 3px;
   flex-shrink: 0;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--ul-swatch-border);
 }
 
 .usgs-lidar-classification-label {
   font-size: 12px;
-  color: #333;
+  color: var(--ul-text);
   cursor: pointer;
   flex: 1;
 }
@@ -673,7 +789,7 @@
 .usgs-lidar-classification-empty {
   padding: 12px 10px;
   text-align: center;
-  color: #868e96;
+  color: var(--ul-text-muted);
   font-size: 12px;
   font-style: italic;
 }
@@ -684,7 +800,7 @@
   gap: 16px;
   margin-bottom: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--ul-border);
 }
 
 .usgs-lidar-source-option {
@@ -692,7 +808,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #555;
+  color: var(--ul-text-2);
   cursor: pointer;
 }
 
@@ -704,16 +820,16 @@
 }
 
 .usgs-lidar-source-option:hover {
-  color: #333;
+  color: var(--ul-text);
 }
 
 /* Colormap section */
 .usgs-lidar-colormap-section {
   margin-bottom: 12px;
   padding: 10px;
-  background: #f8f9fa;
+  background: var(--ul-surface-2);
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--ul-border);
 }
 
 /* Colorbar container with min/max labels */
@@ -729,12 +845,12 @@
   flex: 1;
   height: 16px;
   border-radius: 4px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--ul-border);
 }
 
 .usgs-lidar-colorbar-label {
   font-size: 11px;
-  color: #666;
+  color: var(--ul-text-3);
   min-width: 40px;
 }
 
@@ -761,7 +877,7 @@
 .usgs-lidar-color-range-header span {
   font-size: 12px;
   font-weight: 500;
-  color: #555;
+  color: var(--ul-text-2);
 }
 
 /* Color range mode radio buttons */
@@ -776,7 +892,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #555;
+  color: var(--ul-text-2);
   cursor: pointer;
 }
 
@@ -788,16 +904,16 @@
 }
 
 .usgs-lidar-radio-option:hover {
-  color: #333;
+  color: var(--ul-text);
 }
 
 /* Info button */
 .usgs-lidar-btn-info {
-  color: #4a90d9;
+  color: var(--ul-accent);
 }
 
 .usgs-lidar-btn-info:hover {
-  background: #e7f5ff;
+  background: var(--ul-info-bg);
 }
 
 /* Collapsible section header */
@@ -809,7 +925,7 @@
 
 .usgs-lidar-section-toggle {
   font-size: 10px;
-  color: #888;
+  color: var(--ul-text-muted);
   transition: transform 0.15s;
 }
 
@@ -830,3 +946,55 @@
   box-shadow: none;
 }
 
+/* ==========================================================================
+   Resize handles (bottom-left / bottom-right corners)
+   ========================================================================== */
+.usgs-lidar-resize-handle {
+  position: absolute;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  z-index: 12;
+  touch-action: none;
+}
+
+.usgs-lidar-resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  width: 7px;
+  height: 7px;
+  border-color: var(--ul-text-muted);
+  border-style: solid;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.usgs-lidar-resize-handle:hover::after {
+  opacity: 1;
+}
+
+.usgs-lidar-resize-handle-br {
+  right: 0;
+  cursor: nwse-resize;
+}
+
+.usgs-lidar-resize-handle-br::after {
+  right: 3px;
+  border-width: 0 2px 2px 0;
+}
+
+.usgs-lidar-resize-handle-bl {
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.usgs-lidar-resize-handle-bl::after {
+  left: 3px;
+  border-width: 0 0 2px 2px;
+}
+
+/* Disable text selection while actively resizing */
+.usgs-lidar-control-panel.usgs-lidar-resizing {
+  user-select: none;
+}

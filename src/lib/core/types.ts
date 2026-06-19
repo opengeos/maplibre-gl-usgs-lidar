@@ -190,6 +190,15 @@ export interface UsgsLidarControlOptions {
   maxHeight?: number;
 
   /**
+   * Color theme for the control and panel.
+   * - `'auto'` follows the operating system / browser `prefers-color-scheme`
+   * - `'light'` forces the light theme
+   * - `'dark'` forces the dark theme
+   * @default 'auto'
+   */
+  theme?: 'auto' | 'light' | 'dark';
+
+  /**
    * Custom CSS class name
    */
   className?: string;
