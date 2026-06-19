@@ -191,7 +191,9 @@ export interface UsgsLidarControlOptions {
 
   /**
    * Color theme for the control and panel.
-   * - `'auto'` follows the operating system / browser `prefers-color-scheme`
+   * - `'auto'` follows a host app's light/dark theme when the map sits inside a
+   *   `.dark` element (the Tailwind/GeoLibre convention), tracking it live;
+   *   otherwise it falls back to the operating system `prefers-color-scheme`
    * - `'light'` forces the light theme
    * - `'dark'` forces the dark theme
    * @default 'auto'
