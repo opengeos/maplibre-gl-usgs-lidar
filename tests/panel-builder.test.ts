@@ -79,4 +79,18 @@ describe('PanelBuilder labels and Search Map Extent state', () => {
     expect(extentBtn.disabled).toBe(false);
     expect(extentBtn.title).toBe('');
   });
+
+  it('starts Search Map Extent disabled when built with a preexisting drawn box', () => {
+    // First paint must honor the lock too, not just the updateState refresh path.
+    const panel = new PanelBuilder(noopCallbacks, baseState({ drawnBbox: [-117.71, 37.37, -113.13, 46.61] }));
+    const search = (panel as unknown as { _buildSearchSection(): HTMLElement })._buildSearchSection();
+    document.body.appendChild(search);
+
+    const extentBtn = document.getElementById('usgs-lidar-extent-btn') as HTMLButtonElement;
+    expect(extentBtn.disabled).toBe(true);
+    expect(extentBtn.title).toBe('Clear the drawn area to search by map extent');
+    // The drawn-area info and actions are visible on first paint as well.
+    expect(document.getElementById('usgs-lidar-bbox-info')?.style.display).toBe('block');
+    expect(document.getElementById('usgs-lidar-drawn-actions')?.style.display).toBe('flex');
+  });
 });
