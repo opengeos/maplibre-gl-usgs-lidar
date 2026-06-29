@@ -247,7 +247,14 @@ export class PanelBuilder {
 
     const extentBtn = document.createElement('button');
     extentBtn.className = 'usgs-lidar-btn usgs-lidar-btn-primary';
+    extentBtn.id = 'usgs-lidar-extent-btn';
     extentBtn.textContent = 'Search Map Extent';
+    // Seed the drawn-bbox lock on first paint too (the panel can be built with a
+    // bbox already in state); _updateSearchSection keeps it in sync afterwards.
+    extentBtn.disabled = Boolean(this._state.drawnBbox);
+    extentBtn.title = this._state.drawnBbox
+      ? 'Clear the drawn area to search by map extent'
+      : '';
     extentBtn.addEventListener('click', () => this._callbacks.onSearchByExtent());
     buttonsRow.appendChild(extentBtn);
 
@@ -266,18 +273,24 @@ export class PanelBuilder {
 
     content.appendChild(buttonsRow);
 
-    // Drawn bbox info
+    // Drawn bbox info (seeded from state so a preexisting bbox shows on first
+    // paint; _updateSearchSection keeps it in sync afterwards).
     const bboxInfo = document.createElement('div');
     bboxInfo.className = 'usgs-lidar-bbox-info';
     bboxInfo.id = 'usgs-lidar-bbox-info';
-    bboxInfo.style.display = 'none';
+    if (this._state.drawnBbox) {
+      bboxInfo.textContent = `Drawn area: ${formatBbox(this._state.drawnBbox)}`;
+      bboxInfo.style.display = 'block';
+    } else {
+      bboxInfo.style.display = 'none';
+    }
     content.appendChild(bboxInfo);
 
     // Drawn bbox actions
     const drawnActions = document.createElement('div');
     drawnActions.className = 'usgs-lidar-button-row';
     drawnActions.id = 'usgs-lidar-drawn-actions';
-    drawnActions.style.display = 'none';
+    drawnActions.style.display = this._state.drawnBbox ? 'flex' : 'none';
 
     const searchDrawnBtn = document.createElement('button');
     searchDrawnBtn.className = 'usgs-lidar-btn usgs-lidar-btn-primary';
@@ -287,7 +300,7 @@ export class PanelBuilder {
 
     const clearDrawnBtn = document.createElement('button');
     clearDrawnBtn.className = 'usgs-lidar-btn usgs-lidar-btn-danger';
-    clearDrawnBtn.textContent = 'Clear';
+    clearDrawnBtn.textContent = 'Clear Drawn Area';
     clearDrawnBtn.addEventListener('click', () => this._callbacks.onClearDrawn());
     drawnActions.appendChild(clearDrawnBtn);
 
@@ -344,6 +357,18 @@ export class PanelBuilder {
       }
     }
 
+    // Disable "Search Map Extent" while a drawn bounding box is active, so the
+    // two search scopes (map extent vs drawn area) can't be submitted at once.
+    // It re-enables automatically once the drawn area is cleared.
+    const extentBtn = document.getElementById('usgs-lidar-extent-btn') as HTMLButtonElement | null;
+    if (extentBtn) {
+      const hasDrawnBbox = Boolean(this._state.drawnBbox);
+      extentBtn.disabled = hasDrawnBbox;
+      extentBtn.title = hasDrawnBbox
+        ? 'Clear the drawn area to search by map extent'
+        : '';
+    }
+
     // Update loading indicator
     const loading = document.getElementById('usgs-lidar-search-loading');
     if (loading) {
@@ -395,7 +420,7 @@ export class PanelBuilder {
 
     const clearResultsBtn = document.createElement('button');
     clearResultsBtn.className = 'usgs-lidar-btn usgs-lidar-btn-secondary';
-    clearResultsBtn.textContent = 'Clear';
+    clearResultsBtn.textContent = 'Clear Selection';
     clearResultsBtn.addEventListener('click', () => this._callbacks.onClearResults());
     actionsRow.appendChild(clearResultsBtn);
 
@@ -560,7 +585,7 @@ export class PanelBuilder {
     // Clear all button
     const clearBtn = document.createElement('button');
     clearBtn.className = 'usgs-lidar-btn usgs-lidar-btn-secondary usgs-lidar-btn-full';
-    clearBtn.textContent = 'Clear All';
+    clearBtn.textContent = 'Remove All Loaded Layers';
     clearBtn.addEventListener('click', () => this._callbacks.onClearLoaded());
     content.appendChild(clearBtn);
 
