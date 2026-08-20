@@ -102,6 +102,7 @@ export class UsgsLidarControl implements IControl {
   private _userWidth: number | null = null;
   private _userHeight: number | null = null;
   private _cleanupResize?: () => void;
+  private _exportInProgress = false;
 
   /**
    * Creates a new UsgsLidarControl instance.
@@ -996,6 +997,10 @@ export class UsgsLidarControl implements IControl {
 
   /** Generates and downloads a clipped COPC file from selected EPT data. */
   async exportCopcClip(): Promise<void> {
+    if (this._exportInProgress) {
+      this._showNotification('A COPC export is already in progress', true);
+      return;
+    }
     if (!this._state.drawnBbox) {
       this._showNotification('Draw an area before exporting a COPC clip', true);
       return;
@@ -1004,6 +1009,8 @@ export class UsgsLidarControl implements IControl {
     const selectedItems = this._state.searchResults.filter((item) =>
       this._state.selectedItems.has(item.id)
     );
+    this._exportInProgress = true;
+    this._panelBuilder?.setExportInProgress(true);
     try {
       this._showNotification('Generating clipped COPC file...');
       const result = await requestEptCopcClip(selectedItems, this._state.drawnBbox);
@@ -1022,6 +1029,9 @@ export class UsgsLidarControl implements IControl {
         error instanceof Error ? error.message : 'Failed to export COPC clip',
         true
       );
+    } finally {
+      this._exportInProgress = false;
+      this._panelBuilder?.setExportInProgress(false);
     }
   }
 

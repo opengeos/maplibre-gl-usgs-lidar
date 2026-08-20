@@ -85,6 +85,7 @@ export class PanelBuilder {
   private _loadedSection: HTMLElement | null = null;
   private _vizSection: HTMLElement | null = null;
   private _crossSectionSection: HTMLElement | null = null;
+  private _exportInProgress = false;
 
   // New UI element references for point picking, elevation filter, and classification
   private _pickableCheckbox: HTMLInputElement | null = null;
@@ -531,7 +532,7 @@ export class PanelBuilder {
     if (exportClipBtn) {
       const canExport =
         this._state.dataSource === 'ept' && selectedCount > 0 && Boolean(this._state.drawnBbox);
-      exportClipBtn.disabled = !canExport;
+      exportClipBtn.disabled = !canExport || this._exportInProgress;
       exportClipBtn.textContent =
         selectedCount > 0 ? `Download Clipped COPC (${selectedCount})` : 'Download Clipped COPC';
       exportClipBtn.title = !this._state.drawnBbox
@@ -592,6 +593,12 @@ export class PanelBuilder {
 
       list.appendChild(itemEl);
     }
+  }
+
+  /** Disable the COPC action while a remote export order is active. */
+  setExportInProgress(inProgress: boolean): void {
+    this._exportInProgress = inProgress;
+    this._updateResultsSection();
   }
 
   private _buildLoadedSection(): HTMLElement {

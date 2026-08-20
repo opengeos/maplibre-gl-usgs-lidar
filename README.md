@@ -154,6 +154,7 @@ Main control class implementing MapLibre's `IControl` interface.
 | `clearResults()`      | Clear search results                                                      |
 | `clearLoadedItems()`  | Clear loaded items                                                        |
 | `exportCopcClip()`    | Generate and download selected EPT data clipped to the drawn area as COPC |
+| `exportClipPipeline()` | Deprecated compatibility alias; new callers should use `exportCopcClip()` |
 | `toggle()`            | Toggle panel open/closed                                                  |
 | `expand()`            | Expand panel                                                              |
 | `collapse()`          | Collapse panel                                                            |
