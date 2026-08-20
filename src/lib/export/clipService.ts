@@ -30,6 +30,18 @@ export interface CopcClipOptions {
   timeoutMs?: number;
 }
 
+/** Start a cross-origin attachment download without relying on a delayed popup. */
+export function startBrowserDownload(downloadUrl: string): void {
+  const frame = document.createElement('iframe');
+  frame.hidden = true;
+  frame.setAttribute('aria-hidden', 'true');
+  frame.src = downloadUrl;
+  document.body.appendChild(frame);
+
+  // Attachment navigations do not consistently fire load, so clean up later.
+  window.setTimeout(() => frame.remove(), 60_000);
+}
+
 function bboxPolygon(bbox: [number, number, number, number]) {
   const [west, south, east, north] = bbox;
   return {

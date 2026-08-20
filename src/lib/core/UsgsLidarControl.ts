@@ -19,7 +19,7 @@ import type {
   UnifiedSearchItem,
   DataSourceType,
 } from './types';
-import { requestEptCopcClip } from '../export';
+import { requestEptCopcClip, startBrowserDownload } from '../export';
 import { StacSearcher } from '../stac/StacSearcher';
 import { EptSearcher } from '../ept/EptSearcher';
 import { FootprintLayer } from '../results/FootprintLayer';
@@ -1014,14 +1014,7 @@ export class UsgsLidarControl implements IControl {
     try {
       this._showNotification('Generating clipped COPC file...');
       const result = await requestEptCopcClip(selectedItems, this._state.drawnBbox);
-      const link = document.createElement('a');
-      link.href = result.downloadUrl;
-      link.download = result.filename;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      startBrowserDownload(result.downloadUrl);
       this._showNotification('Clipped COPC file is ready for download');
     } catch (error) {
       console.error('Failed to export COPC clip:', error);

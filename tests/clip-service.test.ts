@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { bboxAreaSquareMiles, requestEptCopcClip } from '../src/lib/export';
+import { bboxAreaSquareMiles, requestEptCopcClip, startBrowserDownload } from '../src/lib/export';
 import type { EptFeature, UnifiedSearchItem } from '../src/lib/core/types';
 
 function eptItem(id = 'survey-a'): UnifiedSearchItem {
@@ -28,6 +28,21 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('EPT COPC clip service', () => {
+  it('downloads through an in-page frame instead of a delayed popup', () => {
+    vi.useFakeTimers();
+    const open = vi.spyOn(window, 'open');
+
+    startBrowserDownload('https://clips.example/download/token-1/clip.copc.laz');
+
+    const frame = document.body.querySelector('iframe');
+    expect(frame?.src).toBe('https://clips.example/download/token-1/clip.copc.laz');
+    expect(frame?.hidden).toBe(true);
+    expect(open).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(60_000);
+    expect(document.body.querySelector('iframe')).toBeNull();
+    vi.useRealTimers();
+  });
+
   it('calculates a small bounding box area', () => {
     expect(bboxAreaSquareMiles([-84.13, 35.67, -84.129, 35.671])).toBeCloseTo(0.00386, 4);
   });
