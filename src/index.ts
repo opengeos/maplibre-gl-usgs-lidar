@@ -15,7 +15,8 @@ export { EptSearcher } from './lib/ept';
 
 // EPT clip export
 export { buildEptClipPipeline, projectBboxToWebMercator } from './lib/export';
-export type { PdalPipeline, PdalStage } from './lib/export';
+export { bboxAreaSquareMiles, requestEptCopcClip } from './lib/export';
+export type { PdalPipeline, PdalStage, CopcClipOptions, CopcClipResult } from './lib/export';
 
 // Results exports
 export { FootprintLayer } from './lib/results';

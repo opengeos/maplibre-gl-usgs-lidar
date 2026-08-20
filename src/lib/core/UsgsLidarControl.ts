@@ -19,7 +19,7 @@ import type {
   UnifiedSearchItem,
   DataSourceType,
 } from './types';
-import { buildEptClipPipeline } from '../export';
+import { requestEptCopcClip } from '../export';
 import { StacSearcher } from '../stac/StacSearcher';
 import { EptSearcher } from '../ept/EptSearcher';
 import { FootprintLayer } from '../results/FootprintLayer';
@@ -111,10 +111,7 @@ export class UsgsLidarControl implements IControl {
   constructor(options?: Partial<UsgsLidarControlOptions>) {
     this._options = { ...DEFAULT_OPTIONS, ...options };
     this._stacSearcher = new StacSearcher();
-    this._eptSearcher = new EptSearcher(
-      this._options.eptBoundaryUrl,
-      this._options.cacheDuration
-    );
+    this._eptSearcher = new EptSearcher(this._options.eptBoundaryUrl, this._options.cacheDuration);
     this._state = {
       collapsed: this._options.collapsed,
       panelWidth: this._options.panelWidth,
@@ -800,7 +797,9 @@ export class UsgsLidarControl implements IControl {
           requestAnimationFrame(checkInit);
         } else {
           // Give up waiting and resolve anyway - search will work but footprints may not show
-          console.warn('UsgsLidarControl: Initialization timeout, proceeding without full initialization');
+          console.warn(
+            'UsgsLidarControl: Initialization timeout, proceeding without full initialization'
+          );
           resolve();
         }
       };
@@ -995,10 +994,10 @@ export class UsgsLidarControl implements IControl {
     }
   }
 
-  /** Downloads a ready-to-run PDAL pipeline for the selected EPT data and drawn area. */
-  exportClipPipeline(): void {
+  /** Generates and downloads a clipped COPC file from selected EPT data. */
+  async exportCopcClip(): Promise<void> {
     if (!this._state.drawnBbox) {
-      this._showNotification('Draw an area before exporting a clip pipeline', true);
+      this._showNotification('Draw an area before exporting a COPC clip', true);
       return;
     }
 
@@ -1006,26 +1005,29 @@ export class UsgsLidarControl implements IControl {
       this._state.selectedItems.has(item.id)
     );
     try {
-      const pipeline = buildEptClipPipeline(selectedItems, this._state.drawnBbox);
-      const blob = new Blob([JSON.stringify(pipeline, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      this._showNotification('Generating clipped COPC file...');
+      const result = await requestEptCopcClip(selectedItems, this._state.drawnBbox);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = 'usgs-lidar-clip-pipeline.json';
+      link.href = result.downloadUrl;
+      link.download = result.filename;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      this._showNotification(
-        'Clip pipeline exported. Run it with: pdal pipeline usgs-lidar-clip-pipeline.json'
-      );
+      this._showNotification('Clipped COPC file is ready for download');
     } catch (error) {
-      console.error('Failed to export clip pipeline:', error);
+      console.error('Failed to export COPC clip:', error);
       this._showNotification(
-        error instanceof Error ? error.message : 'Failed to export clip pipeline',
+        error instanceof Error ? error.message : 'Failed to export COPC clip',
         true
       );
     }
+  }
+
+  /** @deprecated Use exportCopcClip(). */
+  exportClipPipeline(): void {
+    void this.exportCopcClip();
   }
 
   /**
@@ -1208,7 +1210,9 @@ export class UsgsLidarControl implements IControl {
   private _getActivePointCloudId(): string | null {
     if (!this._lidarControl) return null;
     const state = this._lidarControl.getState();
-    return state.activePointCloudId ?? (state.pointClouds.length > 0 ? state.pointClouds[0].id : null);
+    return (
+      state.activePointCloudId ?? (state.pointClouds.length > 0 ? state.pointClouds[0].id : null)
+    );
   }
 
   // ==================== Cross-Section API ====================
@@ -1279,7 +1283,10 @@ export class UsgsLidarControl implements IControl {
   private _emit(event: UsgsLidarControlEvent): void {
     const handlers = this._eventHandlers.get(event);
     if (handlers) {
-      const eventData: UsgsLidarEventData = { type: event, state: this.getState() };
+      const eventData: UsgsLidarEventData = {
+        type: event,
+        state: this.getState(),
+      };
       handlers.forEach((handler) => handler(eventData));
     }
   }
@@ -1287,7 +1294,11 @@ export class UsgsLidarControl implements IControl {
   private _emitWithData(event: UsgsLidarControlEvent, data: Partial<UsgsLidarEventData>): void {
     const handlers = this._eventHandlers.get(event);
     if (handlers) {
-      const eventData: UsgsLidarEventData = { type: event, state: this.getState(), ...data };
+      const eventData: UsgsLidarEventData = {
+        type: event,
+        state: this.getState(),
+        ...data,
+      };
       handlers.forEach((handler) => handler(eventData));
     }
   }
@@ -1383,7 +1394,7 @@ export class UsgsLidarControl implements IControl {
             console.error('Failed to download selected:', err);
           });
         },
-        onExportClipPipeline: () => this.exportClipPipeline(),
+        onExportCopcClip: () => void this.exportCopcClip(),
         onClearResults: () => this.clearResults(),
         onUnloadItem: (itemId) => this.unloadItem(itemId),
         onClearLoaded: () => this.clearLoadedItems(),
@@ -1589,13 +1600,19 @@ export class UsgsLidarControl implements IControl {
         return;
       }
       // Don't close if clicking inside lidar popups (metadata panel, chart popup)
-      const lidarPopup = document.querySelector('.lidar-metadata-backdrop, .lidar-chart-popup-backdrop');
+      const lidarPopup = document.querySelector(
+        '.lidar-metadata-backdrop, .lidar-chart-popup-backdrop'
+      );
       if (lidarPopup?.contains(target)) {
         return;
       }
       // Also check if the click target itself is part of a lidar popup (by class)
       // This handles cases where the popup closes before we can check containment
-      if (target.closest?.('.lidar-metadata-backdrop, .lidar-metadata-panel, .lidar-chart-popup-backdrop, .lidar-chart-popup')) {
+      if (
+        target.closest?.(
+          '.lidar-metadata-backdrop, .lidar-metadata-panel, .lidar-chart-popup-backdrop, .lidar-chart-popup'
+        )
+      ) {
         return;
       }
       // Only collapse if panel is expanded and click is truly outside

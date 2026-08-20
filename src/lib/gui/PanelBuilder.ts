@@ -51,7 +51,7 @@ export interface PanelCallbacks {
   onLoadSelected: () => void;
   onCopySignedUrls: () => void;
   onDownloadSelected: () => void;
-  onExportClipPipeline: () => void;
+  onExportCopcClip: () => void;
   onClearResults: () => void;
   onUnloadItem: (itemId: string) => void;
   onClearLoaded: () => void;
@@ -253,9 +253,7 @@ export class PanelBuilder {
     // Seed the drawn-bbox lock on first paint too (the panel can be built with a
     // bbox already in state); _updateSearchSection keeps it in sync afterwards.
     extentBtn.disabled = Boolean(this._state.drawnBbox);
-    extentBtn.title = this._state.drawnBbox
-      ? 'Clear the drawn area to search by map extent'
-      : '';
+    extentBtn.title = this._state.drawnBbox ? 'Clear the drawn area to search by map extent' : '';
     extentBtn.addEventListener('click', () => this._callbacks.onSearchByExtent());
     buttonsRow.appendChild(extentBtn);
 
@@ -365,9 +363,7 @@ export class PanelBuilder {
     if (extentBtn) {
       const hasDrawnBbox = Boolean(this._state.drawnBbox);
       extentBtn.disabled = hasDrawnBbox;
-      extentBtn.title = hasDrawnBbox
-        ? 'Clear the drawn area to search by map extent'
-        : '';
+      extentBtn.title = hasDrawnBbox ? 'Clear the drawn area to search by map extent' : '';
     }
 
     // Update loading indicator
@@ -459,10 +455,9 @@ export class PanelBuilder {
     const exportClipBtn = document.createElement('button');
     exportClipBtn.className = 'usgs-lidar-btn usgs-lidar-btn-secondary usgs-lidar-btn-full';
     exportClipBtn.id = 'usgs-lidar-export-clip-btn';
-    exportClipBtn.textContent = 'Export Clip Pipeline';
-    exportClipBtn.title =
-      'Download a PDAL pipeline that exports the selected EPT data inside the drawn area to LAZ';
-    exportClipBtn.addEventListener('click', () => this._callbacks.onExportClipPipeline());
+    exportClipBtn.textContent = 'Download Clipped COPC';
+    exportClipBtn.title = 'Generate and download selected EPT data inside the drawn area as COPC';
+    exportClipBtn.addEventListener('click', () => this._callbacks.onExportCopcClip());
     clipActions.appendChild(exportClipBtn);
 
     content.appendChild(clipActions);
@@ -514,33 +509,34 @@ export class PanelBuilder {
     // Update load button
     const selectedCount = this._state.selectedItems.size;
     if (loadBtn) {
-      loadBtn.textContent = selectedCount > 0 ? `Load Selected (${selectedCount})` : 'Load Selected';
+      loadBtn.textContent =
+        selectedCount > 0 ? `Load Selected (${selectedCount})` : 'Load Selected';
       (loadBtn as HTMLButtonElement).disabled = selectedCount === 0;
     }
 
     // Update copy URLs button
     if (copyUrlsBtn) {
-      copyUrlsBtn.textContent = selectedCount > 0 ? `Copy Signed URLs (${selectedCount})` : 'Copy Signed URLs';
+      copyUrlsBtn.textContent =
+        selectedCount > 0 ? `Copy Signed URLs (${selectedCount})` : 'Copy Signed URLs';
       (copyUrlsBtn as HTMLButtonElement).disabled = selectedCount === 0;
     }
 
     // Update download button
     if (downloadBtn) {
-      downloadBtn.textContent = selectedCount > 0 ? `Download Selected (${selectedCount})` : 'Download Selected';
+      downloadBtn.textContent =
+        selectedCount > 0 ? `Download Selected (${selectedCount})` : 'Download Selected';
       (downloadBtn as HTMLButtonElement).disabled = selectedCount === 0;
     }
 
     if (exportClipBtn) {
       const canExport =
-        this._state.dataSource === 'ept' &&
-        selectedCount > 0 &&
-        Boolean(this._state.drawnBbox);
+        this._state.dataSource === 'ept' && selectedCount > 0 && Boolean(this._state.drawnBbox);
       exportClipBtn.disabled = !canExport;
       exportClipBtn.textContent =
-        selectedCount > 0 ? `Export Clip Pipeline (${selectedCount})` : 'Export Clip Pipeline';
+        selectedCount > 0 ? `Download Clipped COPC (${selectedCount})` : 'Download Clipped COPC';
       exportClipBtn.title = !this._state.drawnBbox
-        ? 'Draw an area before exporting an EPT clip pipeline'
-        : 'Download a PDAL pipeline that exports the selected EPT data inside the drawn area to LAZ';
+        ? 'Draw an area before exporting an EPT clip'
+        : 'Generate and download selected EPT data inside the drawn area as COPC';
     }
 
     // Build result items
@@ -829,7 +825,8 @@ export class PanelBuilder {
     ['elevation', 'intensity', 'classification', 'rgb'].forEach((scheme) => {
       const option = document.createElement('option');
       option.value = scheme;
-      option.textContent = scheme === 'rgb' ? 'RGB' : scheme.charAt(0).toUpperCase() + scheme.slice(1);
+      option.textContent =
+        scheme === 'rgb' ? 'RGB' : scheme.charAt(0).toUpperCase() + scheme.slice(1);
       colorSelect.appendChild(option);
     });
     colorSelect.addEventListener('change', () => {
@@ -914,7 +911,8 @@ export class PanelBuilder {
 
     const zOffsetLabel = document.createElement('label');
     zOffsetLabel.textContent = 'Z Offset';
-    zOffsetLabel.title = 'Vertical offset to adjust for absolute elevation (negative values bring points down)';
+    zOffsetLabel.title =
+      'Vertical offset to adjust for absolute elevation (negative values bring points down)';
     zOffsetRow.appendChild(zOffsetLabel);
 
     const zOffsetSlider = document.createElement('input');
@@ -1296,7 +1294,8 @@ export class PanelBuilder {
     this._classificationCheckboxes.clear();
 
     const availableClassifications = this._state.lidarState?.availableClassifications;
-    const hiddenClassifications = this._state.lidarState?.hiddenClassifications || new Set<number>();
+    const hiddenClassifications =
+      this._state.lidarState?.hiddenClassifications || new Set<number>();
 
     if (!availableClassifications || availableClassifications.size === 0) {
       const placeholder = document.createElement('div');
@@ -1763,7 +1762,8 @@ export class PanelBuilder {
       } else {
         const range = this._dataBounds.max - this._dataBounds.min;
         minVal = this._dataBounds.min + (range * this._currentColorRangeConfig.percentileLow) / 100;
-        maxVal = this._dataBounds.min + (range * this._currentColorRangeConfig.percentileHigh) / 100;
+        maxVal =
+          this._dataBounds.min + (range * this._currentColorRangeConfig.percentileHigh) / 100;
       }
     } else {
       // In absolute mode, use the slider values
@@ -2084,7 +2084,8 @@ export class PanelBuilder {
 
     // Show/hide slider containers
     if (this._percentileSliderContainer) {
-      this._percentileSliderContainer.style.display = config.mode === 'percentile' ? 'flex' : 'none';
+      this._percentileSliderContainer.style.display =
+        config.mode === 'percentile' ? 'flex' : 'none';
     }
     if (this._absoluteSliderContainer) {
       this._absoluteSliderContainer.style.display = config.mode === 'absolute' ? 'flex' : 'none';
