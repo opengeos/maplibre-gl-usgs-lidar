@@ -31,15 +31,18 @@ describe('EPT COPC clip service', () => {
   it('downloads through an in-page frame instead of a delayed popup', () => {
     vi.useFakeTimers();
     const open = vi.spyOn(window, 'open');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
 
-    startBrowserDownload('https://clips.example/download/token-1/clip.copc.laz');
+    startBrowserDownload('https://clips.example/download/token-1/clip.copc.laz', container);
 
-    const frame = document.body.querySelector('iframe');
+    const frame = container.querySelector('iframe');
     expect(frame?.src).toBe('https://clips.example/download/token-1/clip.copc.laz');
     expect(frame?.hidden).toBe(true);
     expect(open).not.toHaveBeenCalled();
     vi.advanceTimersByTime(60_000);
-    expect(document.body.querySelector('iframe')).toBeNull();
+    expect(container.querySelector('iframe')).toBeNull();
+    container.remove();
     vi.useRealTimers();
   });
 
