@@ -31,12 +31,15 @@ export interface CopcClipOptions {
 }
 
 /** Start a cross-origin attachment download without relying on a delayed popup. */
-export function startBrowserDownload(downloadUrl: string): void {
+export function startBrowserDownload(
+  downloadUrl: string,
+  container: HTMLElement = document.body
+): void {
   const frame = document.createElement('iframe');
   frame.hidden = true;
   frame.setAttribute('aria-hidden', 'true');
   frame.src = downloadUrl;
-  document.body.appendChild(frame);
+  container.appendChild(frame);
 
   // Attachment navigations do not consistently fire load, so clean up later.
   window.setTimeout(() => frame.remove(), 60_000);

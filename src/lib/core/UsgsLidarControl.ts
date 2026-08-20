@@ -1014,7 +1014,7 @@ export class UsgsLidarControl implements IControl {
     try {
       this._showNotification('Generating clipped COPC file...');
       const result = await requestEptCopcClip(selectedItems, this._state.drawnBbox);
-      startBrowserDownload(result.downloadUrl);
+      startBrowserDownload(result.downloadUrl, this._panel ?? document.body);
       this._showNotification('Clipped COPC file is ready for download');
     } catch (error) {
       console.error('Failed to export COPC clip:', error);
