@@ -51,6 +51,7 @@ export interface PanelCallbacks {
   onLoadSelected: () => void;
   onCopySignedUrls: () => void;
   onDownloadSelected: () => void;
+  onExportClipPipeline: () => void;
   onClearResults: () => void;
   onUnloadItem: (itemId: string) => void;
   onClearLoaded: () => void;
@@ -449,6 +450,22 @@ export class PanelBuilder {
     actionsRow2.appendChild(downloadBtn);
 
     content.appendChild(actionsRow2);
+
+    const clipActions = document.createElement('div');
+    clipActions.className = 'usgs-lidar-button-row';
+    clipActions.id = 'usgs-lidar-clip-actions';
+    clipActions.style.display = 'none';
+
+    const exportClipBtn = document.createElement('button');
+    exportClipBtn.className = 'usgs-lidar-btn usgs-lidar-btn-secondary usgs-lidar-btn-full';
+    exportClipBtn.id = 'usgs-lidar-export-clip-btn';
+    exportClipBtn.textContent = 'Export Clip Pipeline';
+    exportClipBtn.title =
+      'Download a PDAL pipeline that exports the selected EPT data inside the drawn area to LAZ';
+    exportClipBtn.addEventListener('click', () => this._callbacks.onExportClipPipeline());
+    clipActions.appendChild(exportClipBtn);
+
+    content.appendChild(clipActions);
     section.appendChild(content);
 
     return section;
@@ -462,6 +479,10 @@ export class PanelBuilder {
     const loadBtn = document.getElementById('usgs-lidar-load-selected-btn');
     const copyUrlsBtn = document.getElementById('usgs-lidar-copy-urls-btn');
     const downloadBtn = document.getElementById('usgs-lidar-download-btn');
+    const clipActions = document.getElementById('usgs-lidar-clip-actions');
+    const exportClipBtn = document.getElementById(
+      'usgs-lidar-export-clip-btn'
+    ) as HTMLButtonElement | null;
 
     if (!list) return;
 
@@ -481,12 +502,14 @@ export class PanelBuilder {
     if (this._state.searchResults.length === 0) {
       if (actions) actions.style.display = 'none';
       if (actions2) actions2.style.display = 'none';
+      if (clipActions) clipActions.style.display = 'none';
       return;
     }
 
     // Show actions
     if (actions) actions.style.display = 'flex';
     if (actions2) actions2.style.display = 'flex';
+    if (clipActions) clipActions.style.display = this._state.dataSource === 'ept' ? 'flex' : 'none';
 
     // Update load button
     const selectedCount = this._state.selectedItems.size;
@@ -505,6 +528,19 @@ export class PanelBuilder {
     if (downloadBtn) {
       downloadBtn.textContent = selectedCount > 0 ? `Download Selected (${selectedCount})` : 'Download Selected';
       (downloadBtn as HTMLButtonElement).disabled = selectedCount === 0;
+    }
+
+    if (exportClipBtn) {
+      const canExport =
+        this._state.dataSource === 'ept' &&
+        selectedCount > 0 &&
+        Boolean(this._state.drawnBbox);
+      exportClipBtn.disabled = !canExport;
+      exportClipBtn.textContent =
+        selectedCount > 0 ? `Export Clip Pipeline (${selectedCount})` : 'Export Clip Pipeline';
+      exportClipBtn.title = !this._state.drawnBbox
+        ? 'Draw an area before exporting an EPT clip pipeline'
+        : 'Download a PDAL pipeline that exports the selected EPT data inside the drawn area to LAZ';
     }
 
     // Build result items

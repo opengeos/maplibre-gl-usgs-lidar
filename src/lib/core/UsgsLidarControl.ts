@@ -19,6 +19,7 @@ import type {
   UnifiedSearchItem,
   DataSourceType,
 } from './types';
+import { buildEptClipPipeline } from '../export';
 import { StacSearcher } from '../stac/StacSearcher';
 import { EptSearcher } from '../ept/EptSearcher';
 import { FootprintLayer } from '../results/FootprintLayer';
@@ -994,6 +995,39 @@ export class UsgsLidarControl implements IControl {
     }
   }
 
+  /** Downloads a ready-to-run PDAL pipeline for the selected EPT data and drawn area. */
+  exportClipPipeline(): void {
+    if (!this._state.drawnBbox) {
+      this._showNotification('Draw an area before exporting a clip pipeline', true);
+      return;
+    }
+
+    const selectedItems = this._state.searchResults.filter((item) =>
+      this._state.selectedItems.has(item.id)
+    );
+    try {
+      const pipeline = buildEptClipPipeline(selectedItems, this._state.drawnBbox);
+      const blob = new Blob([JSON.stringify(pipeline, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'usgs-lidar-clip-pipeline.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      this._showNotification(
+        'Clip pipeline exported. Run it with: pdal pipeline usgs-lidar-clip-pipeline.json'
+      );
+    } catch (error) {
+      console.error('Failed to export clip pipeline:', error);
+      this._showNotification(
+        error instanceof Error ? error.message : 'Failed to export clip pipeline',
+        true
+      );
+    }
+  }
+
   /**
    * Shows a temporary notification message.
    */
@@ -1349,6 +1383,7 @@ export class UsgsLidarControl implements IControl {
             console.error('Failed to download selected:', err);
           });
         },
+        onExportClipPipeline: () => this.exportClipPipeline(),
         onClearResults: () => this.clearResults(),
         onUnloadItem: (itemId) => this.unloadItem(itemId),
         onClearLoaded: () => this.clearLoadedItems(),
