@@ -125,67 +125,62 @@ Main control class implementing MapLibre's `IControl` interface.
 
 #### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `collapsed` | `boolean` | `true` | Start with panel collapsed |
-| `position` | `string` | `'top-right'` | Control position |
-| `title` | `string` | `'USGS 3DEP LiDAR'` | Panel title |
-| `panelWidth` | `number` | `380` | Initial panel width in pixels (resizable by dragging the bottom corners) |
-| `maxHeight` | `number` | `500` | Fallback maximum panel height; the panel otherwise expands to fill the available vertical space |
-| `theme` | `string` | `'auto'` | Color theme: `'auto'` (follows `prefers-color-scheme`), `'light'`, or `'dark'` |
-| `maxResults` | `number` | `50` | Maximum search results |
-| `showFootprints` | `boolean` | `true` | Show item footprints on map |
-| `autoZoomToResults` | `boolean` | `true` | Auto-zoom to results |
-| `lidarControlOptions` | `object` | `{}` | Options for internal LidarControl |
+| Option                | Type      | Default             | Description                                                                                     |
+| --------------------- | --------- | ------------------- | ----------------------------------------------------------------------------------------------- |
+| `collapsed`           | `boolean` | `true`              | Start with panel collapsed                                                                      |
+| `position`            | `string`  | `'top-right'`       | Control position                                                                                |
+| `title`               | `string`  | `'USGS 3DEP LiDAR'` | Panel title                                                                                     |
+| `panelWidth`          | `number`  | `380`               | Initial panel width in pixels (resizable by dragging the bottom corners)                        |
+| `maxHeight`           | `number`  | `500`               | Fallback maximum panel height; the panel otherwise expands to fill the available vertical space |
+| `theme`               | `string`  | `'auto'`            | Color theme: `'auto'` (follows `prefers-color-scheme`), `'light'`, or `'dark'`                  |
+| `maxResults`          | `number`  | `50`                | Maximum search results                                                                          |
+| `showFootprints`      | `boolean` | `true`              | Show item footprints on map                                                                     |
+| `autoZoomToResults`   | `boolean` | `true`              | Auto-zoom to results                                                                            |
+| `lidarControlOptions` | `object`  | `{}`                | Options for internal LidarControl                                                               |
 
 #### Methods
 
-| Method | Description |
-|--------|-------------|
-| `searchByExtent()` | Search by current map extent |
-| `searchByBbox(bbox)` | Search by bounding box |
-| `startDrawing()` | Start drawing mode |
-| `stopDrawing()` | Stop drawing mode |
-| `selectItem(item)` | Select an item |
-| `deselectItem(item)` | Deselect an item |
-| `loadItem(item)` | Load item's COPC data |
-| `loadSelectedItems()` | Load all selected items |
-| `unloadItem(itemId)` | Unload an item |
-| `clearResults()` | Clear search results |
-| `clearLoadedItems()` | Clear loaded items |
-| `exportClipPipeline()` | Download a PDAL pipeline that clips selected EPT data to the drawn area |
-| `toggle()` | Toggle panel open/closed |
-| `expand()` | Expand panel |
-| `collapse()` | Collapse panel |
+| Method                | Description                                                               |
+| --------------------- | ------------------------------------------------------------------------- |
+| `searchByExtent()`    | Search by current map extent                                              |
+| `searchByBbox(bbox)`  | Search by bounding box                                                    |
+| `startDrawing()`      | Start drawing mode                                                        |
+| `stopDrawing()`       | Stop drawing mode                                                         |
+| `selectItem(item)`    | Select an item                                                            |
+| `deselectItem(item)`  | Deselect an item                                                          |
+| `loadItem(item)`      | Load item's COPC data                                                     |
+| `loadSelectedItems()` | Load all selected items                                                   |
+| `unloadItem(itemId)`  | Unload an item                                                            |
+| `clearResults()`      | Clear search results                                                      |
+| `clearLoadedItems()`  | Clear loaded items                                                        |
+| `exportCopcClip()`    | Generate and download selected EPT data clipped to the drawn area as COPC |
+| `exportClipPipeline()` | Deprecated compatibility alias; new callers should use `exportCopcClip()` |
+| `toggle()`            | Toggle panel open/closed                                                  |
+| `expand()`            | Expand panel                                                              |
+| `collapse()`          | Collapse panel                                                            |
 
 #### Events
 
-| Event | Description |
-|-------|-------------|
-| `collapse` | Panel collapsed |
-| `expand` | Panel expanded |
-| `statechange` | State changed |
-| `searchstart` | Search started |
-| `searchcomplete` | Search completed |
-| `searcherror` | Search error |
-| `loadstart` | Loading started |
-| `loadcomplete` | Loading completed |
-| `loaderror` | Loading error |
-| `drawstart` | Drawing started |
-| `drawend` | Drawing ended |
+| Event            | Description       |
+| ---------------- | ----------------- |
+| `collapse`       | Panel collapsed   |
+| `expand`         | Panel expanded    |
+| `statechange`    | State changed     |
+| `searchstart`    | Search started    |
+| `searchcomplete` | Search completed  |
+| `searcherror`    | Search error      |
+| `loadstart`      | Loading started   |
+| `loadcomplete`   | Loading completed |
+| `loaderror`      | Loading error     |
+| `drawstart`      | Drawing started   |
+| `drawend`        | Drawing ended     |
 
-### Exporting a local EPT clip
+### Downloading a clipped COPC file
 
 Choose **EPT (AWS Open Data)**, draw and search an area, select one or more
-datasets, then click **Export Clip Pipeline**. Run the downloaded pipeline with
-PDAL to create a manageable local LAZ file:
-
-```bash
-pdal pipeline usgs-lidar-clip-pipeline.json
-```
-
-The pipeline reads only the drawn EPSG:3857 bounds from the selected EPT
-resources. This avoids downloading each full survey mosaic in the browser.
+datasets, then click **Download Clipped COPC**. GeoLibre submits the area to the
+USA LiDAR processing service and downloads the generated `.copc.laz` file when
+it is ready. Exports are limited to 5 square miles per request.
 
 ### StacSearcher
 
@@ -229,11 +224,11 @@ docker run -p 8080:80 maplibre-gl-usgs-lidar
 
 ### Available Tags
 
-| Tag | Description |
-|-----|-------------|
-| `latest` | Latest release |
-| `x.y.z` | Specific version (e.g., `1.0.0`) |
-| `x.y` | Minor version (e.g., `1.0`) |
+| Tag      | Description                      |
+| -------- | -------------------------------- |
+| `latest` | Latest release                   |
+| `x.y.z`  | Specific version (e.g., `1.0.0`) |
+| `x.y`    | Minor version (e.g., `1.0`)      |
 
 ## Data Sources
 
