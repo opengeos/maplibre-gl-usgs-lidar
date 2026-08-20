@@ -13,6 +13,7 @@ A MapLibre GL JS plugin for searching and visualizing USGS 3DEP LiDAR data from 
 - Supports two data sources: COPC (Planetary Computer) and EPT (AWS Open Data)
 - View search results with item footprints on the map
 - Load and visualize COPC and EPT point cloud data
+- Export a bounded PDAL pipeline that clips selected EPT datasets to a drawn area and writes LAZ
 - Dynamic streaming for efficient handling of large datasets
 - Customizable color schemes (elevation, intensity, classification, RGB)
 - React components and hooks for easy integration
@@ -152,6 +153,7 @@ Main control class implementing MapLibre's `IControl` interface.
 | `unloadItem(itemId)` | Unload an item |
 | `clearResults()` | Clear search results |
 | `clearLoadedItems()` | Clear loaded items |
+| `exportClipPipeline()` | Download a PDAL pipeline that clips selected EPT data to the drawn area |
 | `toggle()` | Toggle panel open/closed |
 | `expand()` | Expand panel |
 | `collapse()` | Collapse panel |
@@ -171,6 +173,19 @@ Main control class implementing MapLibre's `IControl` interface.
 | `loaderror` | Loading error |
 | `drawstart` | Drawing started |
 | `drawend` | Drawing ended |
+
+### Exporting a local EPT clip
+
+Choose **EPT (AWS Open Data)**, draw and search an area, select one or more
+datasets, then click **Export Clip Pipeline**. Run the downloaded pipeline with
+PDAL to create a manageable local LAZ file:
+
+```bash
+pdal pipeline usgs-lidar-clip-pipeline.json
+```
+
+The pipeline reads only the drawn EPSG:3857 bounds from the selected EPT
+resources. This avoids downloading each full survey mosaic in the browser.
 
 ### StacSearcher
 

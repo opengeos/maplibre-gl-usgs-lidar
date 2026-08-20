@@ -13,6 +13,10 @@ export { StacSearcher } from './lib/stac';
 // EPT exports
 export { EptSearcher } from './lib/ept';
 
+// EPT clip export
+export { buildEptClipPipeline, projectBboxToWebMercator } from './lib/export';
+export type { PdalPipeline, PdalStage } from './lib/export';
+
 // Results exports
 export { FootprintLayer } from './lib/results';
 
