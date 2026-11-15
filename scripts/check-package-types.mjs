@@ -63,6 +63,9 @@ try {
 import { UsgsLidarControl } from 'maplibre-gl-usgs-lidar';
 import { UsgsLidarControlReact } from 'maplibre-gl-usgs-lidar/react';
 console.log(UsgsLidarControl, UsgsLidarControlReact);
+type IsAny<T> = 0 extends 1 & T ? true : false;
+const controlIsTyped: IsAny<typeof UsgsLidarControl> = false;
+const reactIsTyped: IsAny<typeof UsgsLidarControlReact> = false;
 `,
     );
     const program = ts.createProgram([fixture], {
