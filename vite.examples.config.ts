@@ -26,13 +26,20 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
+    alias: [
+      { find: '@', replacement: resolve(__dirname, 'src') },
+      {
+        find: /^maplibre-gl$/,
+        replacement: resolve(__dirname, 'examples/maplibre-compat.ts'),
+      },
       // maplibre-gl-components lazily imports these optional converter deps,
       // which are not installed. The examples never trigger those code paths,
       // so alias them to an empty stub to satisfy import resolution.
-      shpjs: resolve(__dirname, 'examples/empty-module.ts'),
-      '@duckdb/duckdb-wasm': resolve(__dirname, 'examples/empty-module.ts'),
-    },
+      { find: 'shpjs', replacement: resolve(__dirname, 'examples/empty-module.ts') },
+      {
+        find: '@duckdb/duckdb-wasm',
+        replacement: resolve(__dirname, 'examples/empty-module.ts'),
+      },
+    ],
   },
 });

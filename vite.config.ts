@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     dts({
       include: ['src'],
-      outDir: 'dist/types',
+      outDirs: 'dist/types',
       rollupTypes: false,
     }),
   ],

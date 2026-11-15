@@ -43,6 +43,7 @@
     "build:examples": "vite build --config vite.examples.config.ts",
     "preview": "vite preview",
     "test": "vitest --run",
+    "test:types": "npm run build && node scripts/check-package-types.mjs",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
